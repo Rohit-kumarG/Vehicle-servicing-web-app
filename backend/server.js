@@ -22,39 +22,12 @@ app.get("/", (req, res) => {
 
 // ✅ Auth route is now active
 app.use("/api/auth", require("./src/routes/auth"));
-app.use("/api/auth", require("./src/routes/auth"));
-app.use("/api/garages", require("./src/routes/garage"));
-app.use("/api/auth", require("./src/routes/auth"));
-app.use("/api/garages", require("./src/routes/garage"));
-app.use("/api/vehicles", require("./src/routes/vehicle"));
-app.use("/api/auth", require("./src/routes/auth"));
-app.use("/api/garages", require("./src/routes/garage"));
-app.use("/api/vehicles", require("./src/routes/vehicle"));
-app.use("/api/bookings", require("./src/routes/booking"));
-app.use("/api/auth", require("./src/routes/auth"));
-app.use("/api/garages", require("./src/routes/garage"));
-app.use("/api/vehicles", require("./src/routes/vehicle"));
-app.use("/api/bookings", require("./src/routes/booking"));
-app.use("/api/feedback", require("./src/routes/feedback"));
-app.use("/api/auth", require("./src/routes/auth"));
-app.use("/api/garages", require("./src/routes/garage"));
-app.use("/api/vehicles", require("./src/routes/vehicle"));
-app.use("/api/bookings", require("./src/routes/booking"));
-app.use("/api/feedback", require("./src/routes/feedback"));
-app.use("/api/notifications", require("./src/routes/notification"));
-app.use("/api/auth", require("./src/routes/auth"));
 app.use("/api/garages", require("./src/routes/garage"));
 app.use("/api/vehicles", require("./src/routes/vehicle"));
 app.use("/api/bookings", require("./src/routes/booking"));
 app.use("/api/feedback", require("./src/routes/feedback"));
 app.use("/api/notifications", require("./src/routes/notification"));
 app.use("/api/admin", require("./src/routes/admin"));
-// coming soon...
-// app.use('/api/garages', require('./src/routes/garage'));
-// app.use('/api/bookings', require('./src/routes/booking'));
-// app.use('/api/vehicles', require('./src/routes/vehicle'));
-// app.use('/api/feedback', require('./src/routes/feedback'));
-// app.use('/api/admin', require('./src/routes/admin'));
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
