@@ -176,7 +176,15 @@ const updateBookingStatus = async (req, res) => {
       },
       { new: true },
     );
+    const Notification = require("../models/Notification");
 
+    // Notify customer about status change
+    await Notification.create({
+      user_id: booking.customer_id,
+      title: "Booking Status Updated",
+      message: `Your booking for ${booking.service_type} is now ${status}`,
+      type: "booking",
+    });
     res.status(200).json({
       message: "Booking status updated successfully",
       booking: updatedBooking,

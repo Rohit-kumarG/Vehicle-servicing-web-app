@@ -14,7 +14,7 @@ const {
 
 const { protect } = require("../middleware/authMiddleware");
 const { checkRole } = require("../middleware/roleMiddleware");
-
+router.get("/stats/public", getDashboardStats);
 // All routes are admin only
 router.use(protect, checkRole("admin"));
 

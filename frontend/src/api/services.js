@@ -1,11 +1,5 @@
 import apiClient from "./client";
 
-export const authService = {
-  register: (payload) => apiClient.post("/auth/register", payload),
-  login: (payload) => apiClient.post("/auth/login", payload),
-  getProfile: () => apiClient.get("/auth/profile"),
-};
-
 export const garageService = {
   getAll: () => apiClient.get("/garages"),
   getById: (id) => apiClient.get(`/garages/${id}`),
@@ -43,10 +37,16 @@ export const notificationService = {
 };
 
 export const adminService = {
-  getStats: () => apiClient.get("/admin/stats"),
+  getStats: () => apiClient.get("/admin/stats/public"),
   getUsers: () => apiClient.get("/admin/users"),
   getGarages: () => apiClient.get("/admin/garages"),
   toggleGarageStatus: (id) => apiClient.put(`/admin/garages/${id}/status`),
   deleteUser: (id) => apiClient.delete(`/admin/users/${id}`),
   getBookings: () => apiClient.get("/admin/bookings"),
+};
+export const authService = {
+  register: (payload) => apiClient.post("/auth/register", payload),
+  login: (payload) => apiClient.post("/auth/login", payload),
+  getProfile: () => apiClient.get("/auth/profile"),
+  forgotPassword: (payload) => apiClient.post("/auth/forgot-password", payload),
 };
