@@ -1,6 +1,6 @@
-const Booking = require("../models/Booking");
-const Garage = require("../models/Garage");
-const Notification = require("../models/Notification");
+const Booking = require("../models/booking");
+const Garage = require("../models/garage");
+const Notification = require("../models/notification");
 // ==========================================
 // CREATE BOOKING
 // POST /api/bookings
@@ -172,11 +172,11 @@ const updateBookingStatus = async (req, res) => {
         status,
         estimated_cost: estimated_cost || booking.estimated_cost,
         actual_cost: actual_cost || booking.actual_cost,
+
         notes: notes || booking.notes,
       },
       { new: true },
     );
-    const Notification = require("../models/Notification");
 
     // Notify customer about status change
     await Notification.create({
@@ -246,6 +246,33 @@ const adminGetAllBookings = async (req, res) => {
   }
 };
 
+const payBooking = async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id);
+    if (!booking) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
+
+    if (booking.customer_id.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: "Not authorized to pay for this booking" });
+    }
+
+    booking.payment_status = "paid";
+    await booking.save();
+
+    await Notification.create({
+      user_id: req.user._id,
+      title: "Invoice Settled",
+      message: `Your payment of Rs. ${(booking.actual_cost || booking.estimated_cost || 0).toLocaleString()} has been successfully processed.`,
+      type: "booking",
+    });
+
+    res.status(200).json({ message: "Booking paid successfully", booking });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
 module.exports = {
   createBooking,
   getMyBookings,
@@ -254,4 +281,5 @@ module.exports = {
   updateBookingStatus,
   cancelBooking,
   adminGetAllBookings,
+  payBooking,
 };

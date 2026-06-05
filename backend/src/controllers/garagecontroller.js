@@ -1,4 +1,4 @@
-const Garage = require("../models/Garage");
+const Garage = require("../models/garage");
 
 // ==========================================
 // CREATE GARAGE
@@ -16,6 +16,8 @@ const createGarage = async (req, res) => {
       phone,
       email,
       services_offered,
+      cnic,
+      google_maps_link,
       operating_hours,
       latitude,
       longitude,
@@ -45,6 +47,8 @@ const createGarage = async (req, res) => {
       phone,
       email,
       services_offered: services_offered || [],
+      cnic,
+      google_maps_link,
       operating_hours: operating_hours || {},
       latitude,
       longitude,

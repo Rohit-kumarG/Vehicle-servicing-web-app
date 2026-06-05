@@ -7,7 +7,7 @@ const {
   getVehicleById,
   updateVehicle,
   deleteVehicle,
-} = require("../controllers/vehicleController");
+} = require("../controllers/vehiclecontroller");
 
 const { protect } = require("../middleware/authMiddleware");
 const { checkRole } = require("../middleware/roleMiddleware");

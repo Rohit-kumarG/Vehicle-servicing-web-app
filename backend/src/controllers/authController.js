@@ -1,6 +1,7 @@
 const User = require("../models/User");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
+const { sendOTP } = require("../config/email");
 
 // ==========================================
 // GENERATE JWT TOKEN
@@ -16,11 +17,18 @@ const generateToken = (id, role) => {
 const registerUser = async (req, res) => {
   try {
     const { full_name, email, password, role, phone } = req.body;
+    const allowedPublicRoles = ["customer", "garage"];
 
     if (!full_name || !email || !password || !role) {
       return res
         .status(400)
         .json({ message: "Please fill all required fields" });
+    }
+
+    if (!allowedPublicRoles.includes(role)) {
+      return res.status(403).json({
+        message: "Admin accounts cannot be created from public registration",
+      });
     }
 
     const userExists = await User.findOne({ email });
@@ -140,12 +148,83 @@ const updateProfile = async (req, res) => {
   }
 };
 
-module.exports = {
-  registerUser,
-  loginUser,
-  getProfile,
-  updateProfile,
+// ==========================================
+// SEND OTP
+// POST /api/auth/send-otp
+// ==========================================
+const sendOTPCode = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res
+        .status(404)
+        .json({ message: "No account found with this email" });
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiry = new Date(Date.now() + 10 * 60 * 1000);
+
+    await User.findByIdAndUpdate(user._id, {
+      otpCode: otp,
+      otpExpiry: expiry,
+    });
+
+    await sendOTP(email, otp);
+
+    res.status(200).json({ message: "OTP sent to your email" });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
 };
+
+// ==========================================
+// RESET PASSWORD WITH OTP
+// POST /api/auth/reset-password
+// ==========================================
+const resetPassword = async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+
+    if (!email || !otp || !newPassword) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "No account found" });
+    }
+
+    if (user.otpCode !== otp) {
+      return res.status(400).json({ message: "Invalid OTP" });
+    }
+
+    if (new Date() > user.otpExpiry) {
+      return res
+        .status(400)
+        .json({ message: "OTP expired. Request a new one" });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    await User.findByIdAndUpdate(user._id, {
+      password: hashedPassword,
+      otpCode: null,
+      otpExpiry: null,
+    });
+
+    res.status(200).json({ message: "Password reset successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
 // ==========================================
 // FORGOT PASSWORD
 // POST /api/auth/forgot-password
@@ -185,5 +264,7 @@ module.exports = {
   loginUser,
   getProfile,
   updateProfile,
-  forgotPassword, // ← add this
+  sendOTPCode,
+  resetPassword,
+  forgotPassword,
 };

@@ -1,7 +1,7 @@
 const User = require("../models/User");
-const Garage = require("../models/Garage");
-const Booking = require("../models/Booking");
-const Feedback = require("../models/Feedback");
+const Garage = require("../models/garage");
+const Booking = require("../models/booking");
+const Feedback = require("../models/feedback");
 
 // ==========================================
 // GET DASHBOARD STATS

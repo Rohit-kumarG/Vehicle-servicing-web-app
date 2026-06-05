@@ -48,6 +48,14 @@ const garageSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    cnic: {
+      type: String,
+      default: null,
+    },
+    google_maps_link: {
+      type: String,
+      default: null,
+    },
     operating_hours: {
       type: Map,
       of: {

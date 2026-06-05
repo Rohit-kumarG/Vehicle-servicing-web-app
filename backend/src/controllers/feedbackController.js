@@ -1,6 +1,6 @@
-const Feedback = require("../models/Feedback");
-const Booking = require("../models/Booking");
-const Garage = require("../models/Garage");
+const Feedback = require("../models/feedback");
+const Booking = require("../models/booking");
+const Garage = require("../models/garage");
 
 // ==========================================
 // SUBMIT FEEDBACK

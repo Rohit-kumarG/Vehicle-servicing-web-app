@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Route, Routes } from "react-router-dom";
 import AppShell from "./layout/AppShell";
 import HomePage from "./pages/HomePage";
 import AuthPage from "./pages/AuthPage";
@@ -9,6 +9,10 @@ import FeedbackPage from "./pages/FeedbackPage";
 import AdminPage from "./pages/AdminPage";
 import GarageOwnerPage from "./pages/GarageOwnerPage";
 import GarageBookingsPage from "./pages/GarageBookingsPage";
+import GarageDetailPage from "./pages/GarageDetailPage";
+import ProfilePage from "./pages/ProfilePage";
+import CheckoutPage from "./pages/CheckoutPage";
+import NotFoundPage from "./pages/NotFoundPage";
 
 function App() {
   return (
@@ -18,13 +22,16 @@ function App() {
         <Route path="/login" element={<AuthPage mode="login" />} />
         <Route path="/register" element={<AuthPage mode="register" />} />
         <Route path="/garages" element={<GaragesPage />} />
+        <Route path="/garages/:id" element={<GarageDetailPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
         <Route path="/vehicles" element={<VehiclesPage />} />
         <Route path="/bookings" element={<BookingsPage />} />
         <Route path="/feedback" element={<FeedbackPage />} />
+        <Route path="/checkout/:bookingId" element={<CheckoutPage />} />
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/garage/profile" element={<GarageOwnerPage />} />
         <Route path="/garage/bookings" element={<GarageBookingsPage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>
   );

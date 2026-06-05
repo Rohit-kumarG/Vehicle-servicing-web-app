@@ -1,5 +1,19 @@
 import { useEffect, useState } from "react";
 import { garageService } from "../api/services";
+import { AlertCircle, CheckCircle, Search, MapPin, Phone, Mail, Award, Clock, Star, Edit, AlignLeft, Info } from "lucide-react";
+
+const standardServicesList = [
+  "Oil Change",
+  "Engine Diagnostic & Tuning",
+  "Brake Service",
+  "Wheel Alignment & Balancing",
+  "Car Wash",
+  "Body Polishing",
+  "General Mechanical Checkup",
+  "Suspension Repair",
+  "AC Gas Refill",
+  "Battery Replacement"
+];
 
 export default function GarageOwnerPage() {
   const [garage, setGarage] = useState(null);
@@ -10,6 +24,9 @@ export default function GarageOwnerPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [locationSuggestions, setLocationSuggestions] = useState([]);
+  const [locationQuery, setLocationQuery] = useState("");
+  const [locationLoading, setLocationLoading] = useState(false);
   const [createForm, setCreateForm] = useState({
     name: "",
     description: "",
@@ -19,11 +36,46 @@ export default function GarageOwnerPage() {
     phone: "",
     email: "",
     services_offered: "",
+    cnic: "",
+    google_maps_link: "",
+    latitude: null,
+    longitude: null,
   });
+
+  const [regServices, setRegServices] = useState([]);
+  const [regOtherChecked, setRegOtherChecked] = useState(false);
+  const [regOtherText, setRegOtherText] = useState("");
+
+  const [editServices, setEditServices] = useState([]);
+  const [editOtherChecked, setEditOtherChecked] = useState(false);
+  const [editOtherText, setEditOtherText] = useState("");
 
   useEffect(() => {
     fetchMyGarage();
   }, []);
+
+  useEffect(() => {
+    if (garage && editing) {
+      const standardSelected = [];
+      const customSelected = [];
+      (garage.services_offered || []).forEach((s) => {
+        if (standardServicesList.includes(s)) {
+          standardSelected.push(s);
+        } else {
+          customSelected.push(s);
+        }
+      });
+      setEditServices(standardSelected);
+      if (customSelected.length > 0) {
+        setEditOtherChecked(true);
+        setEditOtherText(customSelected.join(", "));
+      } else {
+        setEditOtherChecked(false);
+        setEditOtherText("");
+      }
+      setLocationQuery(garage.address || "");
+    }
+  }, [editing, garage]);
 
   const fetchMyGarage = async () => {
     try {
@@ -31,11 +83,57 @@ export default function GarageOwnerPage() {
       setGarage(res.data);
       setForm(res.data);
     } catch (err) {
-      // No garage found
       setGarage(null);
     } finally {
       setLoading(false);
     }
+  };
+
+  const searchLocation = async (query) => {
+    setLocationQuery(query);
+    if (query.length < 3) {
+      setLocationSuggestions([]);
+      return;
+    }
+    setLocationLoading(true);
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+          query,
+        )}&countrycodes=pk&limit=5`,
+      );
+      const data = await res.json();
+      setLocationSuggestions(data);
+    } catch (err) {
+      console.error("Location search error:", err);
+      setLocationSuggestions([]);
+    } finally {
+      setLocationLoading(false);
+    }
+  };
+
+  const selectLocation = (place) => {
+    const parts = place.display_name.split(",");
+    const locationData = {
+      area: parts[0]?.trim() || "",
+      city: parts[1]?.trim() || "",
+      address: place.display_name.substring(0, 100),
+      latitude: parseFloat(place.lat),
+      longitude: parseFloat(place.lon),
+    };
+    if (editing) {
+      setForm((prev) => ({
+        ...prev,
+        ...locationData
+      }));
+    } else {
+      setCreateForm((prev) => ({
+        ...prev,
+        ...locationData
+      }));
+    }
+    setLocationQuery(place.display_name.substring(0, 60));
+    setLocationSuggestions([]);
   };
 
   const handleUpdate = async (e) => {
@@ -43,11 +141,17 @@ export default function GarageOwnerPage() {
     setSubmitting(true);
     setError("");
     setSuccess("");
+    const customList = editOtherChecked
+      ? editOtherText.split(",").map((s) => s.trim()).filter((s) => s)
+      : [];
+    const combinedServices = [...editServices, ...customList];
+
     try {
       await garageService.update(garage._id, {
         ...form,
+        services_offered: combinedServices,
       });
-      setSuccess("Garage updated successfully!");
+      setSuccess("Garage profile details updated successfully!");
       setEditing(false);
       fetchMyGarage();
     } catch (err) {
@@ -61,13 +165,15 @@ export default function GarageOwnerPage() {
     e.preventDefault();
     setSubmitting(true);
     setError("");
+    const customList = regOtherChecked
+      ? regOtherText.split(",").map((s) => s.trim()).filter((s) => s)
+      : [];
+    const combinedServices = [...regServices, ...customList];
+
     try {
       await garageService.create({
         ...createForm,
-        services_offered: createForm.services_offered
-          .split(",")
-          .map((s) => s.trim())
-          .filter((s) => s),
+        services_offered: combinedServices,
       });
       setShowCreateForm(false);
       fetchMyGarage();
@@ -79,144 +185,291 @@ export default function GarageOwnerPage() {
   };
 
   if (loading)
-    return <div className="page-content">Loading garage info...</div>;
+    return <div className="page-content"><p>Loading servicing profiles...</p></div>;
 
   // No garage yet
   if (!garage) {
     return (
       <div className="page-content">
-        <div style={{ marginBottom: "24px" }}>
-          <h2>My Garage</h2>
-          <p>You have not registered a garage yet</p>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            borderBottom: "1px solid var(--line)",
+            paddingBottom: "20px",
+            marginBottom: "12px",
+          }}
+        >
+          <div>
+            <h2>My Detailing Station</h2>
+            <p>Register your service center to activate appointment queue matching</p>
+          </div>
+          <button
+            className="primary-button"
+            onClick={() => setShowCreateForm(!showCreateForm)}
+          >
+            {showCreateForm ? "View Overview" : "+ Register Station"}
+          </button>
         </div>
 
-        <button
-          className="primary-button"
-          onClick={() => setShowCreateForm(!showCreateForm)}
-        >
-          {showCreateForm ? "Cancel" : "+ Register My Garage"}
-        </button>
-
         {showCreateForm && (
-          <div className="form-card" style={{ marginTop: "24px" }}>
-            <h3 style={{ marginBottom: "16px" }}>Register Your Garage</h3>
-            {error && <p style={{ color: "red" }}>{error}</p>}
+          <div className="form-card" style={{ animation: "fadeIn 0.3s ease" }}>
+            <h3 style={{ borderBottom: "1px solid var(--line)", paddingBottom: "10px" }}>Register Detailing Center</h3>
+            
+            {error && (
+              <div style={{ color: "var(--danger)", background: "var(--danger-light)", padding: "10px", borderRadius: "8px", border: "1px solid var(--danger)", fontSize: "13px", fontWeight: "600", marginBottom: "10px" }}>
+                ❌ {error}
+              </div>
+            )}
+            
             <form onSubmit={handleCreate}>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: "12px",
-                }}
-              >
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
                 <label>
-                  Garage Name
+                  Station Name
                   <input
-                    placeholder="Ahmed Auto Workshop"
+                    placeholder="e.g. Apex Detailing Studio"
                     value={createForm.name}
-                    onChange={(e) =>
-                      setCreateForm({ ...createForm, name: e.target.value })
-                    }
+                    onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
                     required
                   />
                 </label>
                 <label>
-                  Phone
+                  Direct Telephone Number
                   <input
-                    placeholder="03001234567"
+                    placeholder="e.g. 03001234567"
                     value={createForm.phone}
-                    onChange={(e) =>
-                      setCreateForm({ ...createForm, phone: e.target.value })
-                    }
+                    onChange={(e) => setCreateForm({ ...createForm, phone: e.target.value })}
                     required
                   />
                 </label>
+
+                {/* Location Search Input */}
+                <label style={{ gridColumn: "1 / -1", position: "relative" }}>
+                  Search Maps Location Coordinates
+                  <div style={{ position: "relative" }}>
+                    <Search size={14} color="var(--accent-strong)" style={{ position: "absolute", left: "12px", top: "14px" }} />
+                    <input
+                      placeholder="Type district, sector, city to auto-match..."
+                      value={locationQuery}
+                      onChange={(e) => searchLocation(e.target.value)}
+                      style={{ paddingLeft: "36px" }}
+                    />
+                  </div>
+                  {locationLoading && (
+                    <div style={{ padding: "8px 10px", color: "var(--muted)", fontSize: "12px" }}>
+                      🔍 Match searching...
+                    </div>
+                  )}
+                  {locationSuggestions.length > 0 && (
+                    <div
+                      style={{
+                        border: "1px solid var(--line-strong)",
+                        borderRadius: "8px",
+                        marginTop: "6px",
+                        maxHeight: "180px",
+                        overflowY: "auto",
+                        background: "var(--panel)",
+                        boxShadow: "var(--shadow)",
+                        zIndex: 15,
+                        position: "relative"
+                      }}
+                    >
+                      {locationSuggestions.map((place, i) => (
+                        <div
+                          key={i}
+                          onClick={() => selectLocation(place)}
+                          style={{
+                            padding: "10px 14px",
+                            cursor: "pointer",
+                            borderBottom: "1px solid var(--line)",
+                            fontSize: "12.5px",
+                            color: "var(--text)",
+                            transition: "background 0.2s"
+                          }}
+                          onMouseEnter={(e) => (e.currentTarget.style.background = "var(--accent-light)")}
+                          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                        >
+                          📍 {place.display_name}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </label>
+
+                <div
+                  style={{
+                    gridColumn: "1 / -1",
+                    padding: "12px",
+                    background: "rgba(197, 168, 128, 0.08)",
+                    border: "1px solid var(--line)",
+                    borderRadius: "8px",
+                    fontSize: "12px",
+                    color: "var(--accent-strong)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px"
+                  }}
+                >
+                  <Info size={14} /> City and District parameters auto-fill upon map selection.
+                </div>
+
                 <label>
                   City
                   <input
                     placeholder="Karachi"
                     value={createForm.city}
-                    onChange={(e) =>
-                      setCreateForm({ ...createForm, city: e.target.value })
-                    }
+                    onChange={(e) => setCreateForm({ ...createForm, city: e.target.value })}
                     required
                   />
                 </label>
+
                 <label>
-                  Area
+                  Area District
                   <input
                     placeholder="Gulshan"
                     value={createForm.area}
-                    onChange={(e) =>
-                      setCreateForm({ ...createForm, area: e.target.value })
-                    }
+                    onChange={(e) => setCreateForm({ ...createForm, area: e.target.value })}
                     required
                   />
                 </label>
-                <label>
-                  Address
+
+                <label style={{ gridColumn: "1 / -1" }}>
+                  Full Street Address
                   <input
-                    placeholder="Shop 5, Block 10"
+                    placeholder="e.g. Shop 5, Block 10, KDA Complex"
                     value={createForm.address}
-                    onChange={(e) =>
-                      setCreateForm({ ...createForm, address: e.target.value })
-                    }
+                    onChange={(e) => setCreateForm({ ...createForm, address: e.target.value })}
                     required
                   />
                 </label>
+
+                {createForm.latitude && (
+                  <div
+                    style={{
+                      gridColumn: "1 / -1",
+                      padding: "10px 12px",
+                      background: "rgba(61,92,75,0.08)",
+                      border: "1px solid var(--success)",
+                      borderRadius: "8px",
+                      fontSize: "12.5px",
+                      color: "var(--success)",
+                    }}
+                  >
+                    ✅ Coordinates Linked: {createForm.latitude.toFixed(5)}, {createForm.longitude.toFixed(5)}
+                  </div>
+                )}
+
                 <label>
-                  Email
+                  Business Email
                   <input
                     type="email"
-                    placeholder="garage@email.com"
+                    placeholder="contact@studio.com"
                     value={createForm.email}
-                    onChange={(e) =>
-                      setCreateForm({ ...createForm, email: e.target.value })
-                    }
+                    onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
+                  />
+                </label>
+                
+                <label>
+                  CNIC Registration
+                  <input
+                    placeholder="e.g. 42101-1234567-1"
+                    value={createForm.cnic}
+                    onChange={(e) => setCreateForm({ ...createForm, cnic: e.target.value })}
+                    required
                   />
                 </label>
               </div>
-              <label style={{ marginTop: "12px" }}>
-                Services Offered (comma separated)
+
+              <div style={{ gridColumn: "span 2", display: "flex", flexDirection: "column", gap: "8px", marginTop: "16px" }}>
+                <span style={{ fontSize: "13.5px", fontWeight: "600" }}>Select Services Offered</span>
+                <div style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "10px",
+                  background: "var(--bg-darker)",
+                  padding: "16px",
+                  borderRadius: "8px",
+                  border: "1px solid var(--line-strong)",
+                  maxHeight: "180px",
+                  overflowY: "auto"
+                }}>
+                  {standardServicesList.map((service) => {
+                    const isChecked = regServices.includes(service);
+                    return (
+                      <label key={service} style={{ display: "flex", alignItems: "center", gap: "8px", margin: 0, fontWeight: "500", cursor: "pointer", fontSize: "13px" }}>
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setRegServices([...regServices, service]);
+                            } else {
+                              setRegServices(regServices.filter((s) => s !== service));
+                            }
+                          }}
+                          style={{ width: "auto", margin: 0 }}
+                        />
+                        <span>{service}</span>
+                      </label>
+                    );
+                  })}
+                  <label style={{ display: "flex", alignItems: "center", gap: "8px", margin: 0, fontWeight: "500", cursor: "pointer", fontSize: "13px" }}>
+                    <input
+                      type="checkbox"
+                      checked={regOtherChecked}
+                      onChange={(e) => setRegOtherChecked(e.target.checked)}
+                      style={{ width: "auto", margin: 0 }}
+                    />
+                    <span>Other Services</span>
+                  </label>
+                </div>
+                {regOtherChecked && (
+                  <label style={{ marginTop: "8px" }}>
+                    Specify Custom Services (comma separated)
+                    <input
+                      placeholder="e.g. Master Detailing, Nano Ceramic Polish"
+                      value={regOtherText}
+                      onChange={(e) => setRegOtherText(e.target.value)}
+                    />
+                  </label>
+                )}
+              </div>
+
+              <label style={{ marginTop: "16px", display: "flex", flexDirection: "column" }}>
+                Google Maps Navigation Link
                 <input
-                  placeholder="oil change, tire change, engine repair"
-                  value={createForm.services_offered}
-                  onChange={(e) =>
-                    setCreateForm({
-                      ...createForm,
-                      services_offered: e.target.value,
-                    })
-                  }
+                  placeholder="https://maps.google.com/?q=..."
+                  value={createForm.google_maps_link}
+                  onChange={(e) => setCreateForm({ ...createForm, google_maps_link: e.target.value })}
                 />
               </label>
-              <label style={{ marginTop: "12px" }}>
-                Description
+
+              <label style={{ marginTop: "16px", display: "flex", flexDirection: "column" }}>
+                Center Description
                 <textarea
-                  placeholder="Describe your garage..."
+                  placeholder="Tell clients about your specialty detailing equipment, tuning licenses..."
                   value={createForm.description}
-                  onChange={(e) =>
-                    setCreateForm({
-                      ...createForm,
-                      description: e.target.value,
-                    })
-                  }
+                  onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
                   style={{
                     width: "100%",
-                    padding: "8px",
-                    borderRadius: "6px",
-                    border: "1px solid #ccc",
-                    marginTop: "4px",
+                    padding: "12px",
+                    borderRadius: "8px",
+                    border: "1px solid var(--line-strong)",
+                    background: "#fafaf9",
+                    marginTop: "8px"
                   }}
                   rows={3}
                 />
               </label>
+
               <button
                 type="submit"
                 className="primary-button"
-                style={{ marginTop: "16px" }}
+                style={{ marginTop: "24px" }}
                 disabled={submitting}
               >
-                {submitting ? "Creating..." : "Register Garage"}
+                {submitting ? "Registering..." : "Submit Registration Request"}
               </button>
             </form>
           </div>
@@ -227,174 +480,354 @@ export default function GarageOwnerPage() {
 
   return (
     <div className="page-content">
+      {/* Header bar */}
       <div
         style={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          marginBottom: "24px",
+          borderBottom: "1px solid var(--line)",
+          paddingBottom: "20px",
+          marginBottom: "12px",
         }}
       >
         <div>
           <h2>{garage.name}</h2>
-          <p>
-            📍 {garage.area}, {garage.city}
+          <p style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "13.5px", color: "var(--muted)", marginTop: "4px" }}>
+            <MapPin size={13} color="var(--accent-strong)" /> {garage.area}, {garage.city}
           </p>
         </div>
-        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-          <span
-            style={{
-              background: garage.is_active ? "#10b981" : "#ef4444",
-              color: "white",
-              padding: "4px 12px",
-              borderRadius: "12px",
-              fontSize: "13px",
-            }}
-          >
-            {garage.is_active ? "✅ Active" : "⏳ Pending Approval"}
+        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+          <span className={`status-badge ${garage.is_active ? "completed" : "cancelled"}`}>
+            {garage.is_active ? "● Active Station" : "● Inactive Approval"}
           </span>
           <button
             className="primary-button"
             onClick={() => setEditing(!editing)}
+            style={{ display: "flex", alignItems: "center", gap: "6px" }}
           >
-            {editing ? "Cancel" : "Edit Garage"}
+            <Edit size={14} />
+            {editing ? "Cancel" : "Edit Profile"}
           </button>
         </div>
       </div>
 
       {success && (
-        <p style={{ color: "green", marginBottom: "12px" }}>{success}</p>
+        <div style={{ color: "var(--success)", background: "var(--success-light)", border: "1px solid var(--success)", padding: "10px 14px", borderRadius: "8px", fontSize: "13.5px", fontWeight: "600", marginBottom: "12px" }}>
+          ✅ {success}
+        </div>
       )}
-      {error && <p style={{ color: "red", marginBottom: "12px" }}>{error}</p>}
+      {error && (
+        <div style={{ color: "var(--danger)", background: "var(--danger-light)", border: "1px solid var(--danger)", padding: "10px 14px", borderRadius: "8px", fontSize: "13.5px", fontWeight: "600", marginBottom: "12px" }}>
+          ❌ {error}
+        </div>
+      )}
 
       {!editing ? (
-        // View Mode
+        // View Profile Mode
         <div className="card-grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
-          <div className="garage-card">
-            <h3>Contact Info</h3>
-            <p>📞 {garage.phone}</p>
-            <p>📧 {garage.email || "Not provided"}</p>
-            <p>📍 {garage.address}</p>
+          <div className="garage-card" style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <h3 style={{ borderBottom: "1px solid var(--line)", paddingBottom: "8px", display: "flex", alignItems: "center", gap: "6px" }}>
+              <Phone size={15} color="var(--accent-strong)" /> Contact details
+            </h3>
+            <p style={{ fontSize: "13.5px", marginTop: "8px" }}>📞 Phone: <strong>{garage.phone}</strong></p>
+            <p style={{ fontSize: "13.5px" }}>📧 Email: <strong>{garage.email || "Not registered"}</strong></p>
+            <p style={{ fontSize: "13.5px" }}>📍 Address: <strong>{garage.address}</strong></p>
           </div>
-          <div className="garage-card">
-            <h3>Performance</h3>
-            <p>⭐ Rating: {garage.rating || 0}</p>
-            <p>📋 Total Bookings: {garage.total_bookings || 0}</p>
-            <p>⏱️ Avg Wait Time: {garage.average_wait_time || 0} mins</p>
+
+          <div className="garage-card" style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <h3 style={{ borderBottom: "1px solid var(--line)", paddingBottom: "8px", display: "flex", alignItems: "center", gap: "6px" }}>
+              <Award size={15} color="var(--accent-strong)" /> Performance Stats
+            </h3>
+            <p style={{ fontSize: "13.5px", marginTop: "8px", display: "flex", alignItems: "center", gap: "4px" }}>
+              ⭐ Rating Score: <strong>{garage.rating || "5.0"} Stars</strong>
+            </p>
+            <p style={{ fontSize: "13.5px" }}>📋 Completed bookings: <strong>{garage.total_bookings || 0} orders</strong></p>
+            <p style={{ fontSize: "13.5px", display: "flex", alignItems: "center", gap: "4px" }}>
+              <Clock size={13} color="var(--accent-strong)" /> Average Wait queue: <strong>{garage.average_wait_time || 0} minutes</strong>
+            </p>
           </div>
-          <div className="garage-card">
-            <h3>Services Offered</h3>
-            <div
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: "6px",
-                marginTop: "8px",
-              }}
-            >
+
+          <div className="garage-card" style={{ gridColumn: "1 / -1", display: "flex", flexDirection: "column", gap: "8px" }}>
+            <h3 style={{ borderBottom: "1px solid var(--line)", paddingBottom: "8px" }}>Detailing Specialties</h3>
+            <div className="badge-group" style={{ marginTop: "8px" }}>
               {garage.services_offered?.map((s, i) => (
-                <span
-                  key={i}
-                  style={{
-                    background: "#e8f4ff",
-                    color: "#0066cc",
-                    padding: "3px 10px",
-                    borderRadius: "12px",
-                    fontSize: "13px",
-                  }}
-                >
+                <span key={i} className="tag-badge" style={{ padding: "6px 12px", fontSize: "12px" }}>
                   {s}
                 </span>
               ))}
             </div>
           </div>
-          <div className="garage-card">
-            <h3>Description</h3>
-            <p>{garage.description || "No description added"}</p>
+
+          <div className="garage-card" style={{ gridColumn: "1 / -1", display: "flex", flexDirection: "column", gap: "8px" }}>
+            <h3 style={{ borderBottom: "1px solid var(--line)", paddingBottom: "8px", display: "flex", alignItems: "center", gap: "6px" }}>
+              <AlignLeft size={15} color="var(--accent-strong)" /> Public Description
+            </h3>
+            <p style={{ fontSize: "13.5px", fontStyle: "italic", marginTop: "8px" }}>
+              "{garage.description || "No public studio description details registered."}"
+            </p>
           </div>
         </div>
       ) : (
-        // Edit Mode
-        <div className="form-card">
-          <h3 style={{ marginBottom: "16px" }}>Update Garage Info</h3>
+        // Edit Profile Mode
+        <div className="form-card" style={{ animation: "fadeIn 0.3s ease" }}>
+          <h3 style={{ borderBottom: "1px solid var(--line)", paddingBottom: "10px" }}>Modify Profile Details</h3>
           <form onSubmit={handleUpdate}>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: "12px",
-              }}
-            >
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
               <label>
-                Garage Name
+                Station Name
                 <input
+                  placeholder="e.g. Apex Detailing Studio"
                   value={form.name || ""}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  required
                 />
               </label>
               <label>
-                Phone
+                Direct Telephone Number
                 <input
+                  placeholder="e.g. 03001234567"
                   value={form.phone || ""}
                   onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  required
                 />
               </label>
+
+              {/* Location Search Input */}
+              <label style={{ gridColumn: "1 / -1", position: "relative" }}>
+                Search Maps Location Coordinates
+                <div style={{ position: "relative" }}>
+                  <Search size={14} color="var(--accent-strong)" style={{ position: "absolute", left: "12px", top: "14px" }} />
+                  <input
+                    placeholder="Type district, sector, city to auto-match..."
+                    value={locationQuery}
+                    onChange={(e) => searchLocation(e.target.value)}
+                    style={{ paddingLeft: "36px" }}
+                  />
+                </div>
+                {locationLoading && (
+                  <div style={{ padding: "8px 10px", color: "var(--muted)", fontSize: "12px" }}>
+                    🔍 Match searching...
+                  </div>
+                )}
+                {locationSuggestions.length > 0 && (
+                  <div
+                    style={{
+                      border: "1px solid var(--line-strong)",
+                      borderRadius: "8px",
+                      marginTop: "6px",
+                      maxHeight: "180px",
+                      overflowY: "auto",
+                      background: "var(--panel)",
+                      boxShadow: "var(--shadow)",
+                      zIndex: 15,
+                      position: "relative"
+                    }}
+                  >
+                    {locationSuggestions.map((place, i) => (
+                      <div
+                        key={i}
+                        onClick={() => selectLocation(place)}
+                        style={{
+                          padding: "10px 14px",
+                          cursor: "pointer",
+                          borderBottom: "1px solid var(--line)",
+                          fontSize: "12.5px",
+                          color: "var(--text)",
+                          transition: "background 0.2s"
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = "var(--accent-light)")}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                      >
+                        📍 {place.display_name}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </label>
+
+              <div
+                style={{
+                  gridColumn: "1 / -1",
+                  padding: "12px",
+                  background: "rgba(197, 168, 128, 0.08)",
+                  border: "1px solid var(--line)",
+                  borderRadius: "8px",
+                  fontSize: "12px",
+                  color: "var(--accent-strong)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px"
+                }}
+              >
+                <Info size={14} /> City and District parameters auto-fill upon map selection.
+              </div>
+
               <label>
                 City
                 <input
+                  placeholder="Karachi"
                   value={form.city || ""}
                   onChange={(e) => setForm({ ...form, city: e.target.value })}
+                  required
                 />
               </label>
+
               <label>
-                Area
+                Area District
                 <input
+                  placeholder="Gulshan"
                   value={form.area || ""}
                   onChange={(e) => setForm({ ...form, area: e.target.value })}
+                  required
                 />
               </label>
-              <label>
-                Address
+
+              <label style={{ gridColumn: "1 / -1" }}>
+                Full Street Address
                 <input
+                  placeholder="e.g. Shop 5, Block 10, KDA Complex"
                   value={form.address || ""}
-                  onChange={(e) =>
-                    setForm({ ...form, address: e.target.value })
-                  }
+                  onChange={(e) => setForm({ ...form, address: e.target.value })}
+                  required
                 />
               </label>
+
+              {form.latitude && (
+                <div
+                  style={{
+                    gridColumn: "1 / -1",
+                    padding: "10px 12px",
+                    background: "rgba(61,92,75,0.08)",
+                    border: "1px solid var(--success)",
+                    borderRadius: "8px",
+                    fontSize: "12.5px",
+                    color: "var(--success)",
+                  }}
+                >
+                  ✅ Coordinates Linked: {form.latitude.toFixed(5)}, {form.longitude.toFixed(5)}
+                </div>
+              )}
+
               <label>
-                Email
+                Business Email
                 <input
+                  type="email"
+                  placeholder="contact@studio.com"
                   value={form.email || ""}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
                 />
               </label>
+              
+              <label>
+                CNIC Registration
+                <input
+                  placeholder="e.g. 42101-1234567-1"
+                  value={form.cnic || ""}
+                  onChange={(e) => setForm({ ...form, cnic: e.target.value })}
+                  required
+                />
+              </label>
             </div>
-            <label style={{ marginTop: "12px" }}>
-              Description
-              <textarea
-                value={form.description || ""}
-                onChange={(e) =>
-                  setForm({ ...form, description: e.target.value })
-                }
-                style={{
-                  width: "100%",
-                  padding: "8px",
-                  borderRadius: "6px",
-                  border: "1px solid #ccc",
-                  marginTop: "4px",
-                }}
-                rows={3}
+
+            <div style={{ gridColumn: "span 2", display: "flex", flexDirection: "column", gap: "8px", marginTop: "16px" }}>
+              <span style={{ fontSize: "13.5px", fontWeight: "600" }}>Select Services Offered</span>
+              <div style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "10px",
+                background: "var(--bg-darker)",
+                padding: "16px",
+                borderRadius: "8px",
+                border: "1px solid var(--line-strong)",
+                maxHeight: "180px",
+                overflowY: "auto"
+              }}>
+                {standardServicesList.map((service) => {
+                  const isChecked = editServices.includes(service);
+                  return (
+                    <label key={service} style={{ display: "flex", alignItems: "center", gap: "8px", margin: 0, fontWeight: "500", cursor: "pointer", fontSize: "13px" }}>
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setEditServices([...editServices, service]);
+                          } else {
+                            setEditServices(editServices.filter((s) => s !== service));
+                          }
+                        }}
+                        style={{ width: "auto", margin: 0 }}
+                      />
+                      <span>{service}</span>
+                    </label>
+                  );
+                })}
+                <label style={{ display: "flex", alignItems: "center", gap: "8px", margin: 0, fontWeight: "500", cursor: "pointer", fontSize: "13px" }}>
+                  <input
+                    type="checkbox"
+                    checked={editOtherChecked}
+                    onChange={(e) => setEditOtherChecked(e.target.checked)}
+                    style={{ width: "auto", margin: 0 }}
+                  />
+                  <span>Other Services</span>
+                </label>
+              </div>
+              {editOtherChecked && (
+                <label style={{ marginTop: "8px" }}>
+                  Specify Custom Services (comma separated)
+                  <input
+                    placeholder="e.g. Master Detailing, Nano Ceramic Polish"
+                    value={editOtherText}
+                    onChange={(e) => setEditOtherText(e.target.value)}
+                  />
+                </label>
+              )}
+            </div>
+
+            <label style={{ marginTop: "16px", display: "flex", flexDirection: "column" }}>
+              Google Maps Navigation Link
+              <input
+                placeholder="https://maps.google.com/?q=..."
+                value={form.google_maps_link || ""}
+                onChange={(e) => setForm({ ...form, google_maps_link: e.target.value })}
               />
             </label>
-            <button
-              type="submit"
-              className="primary-button"
-              style={{ marginTop: "16px" }}
-              disabled={submitting}
-            >
-              {submitting ? "Saving..." : "Save Changes"}
-            </button>
+
+            <label style={{ marginTop: "16px", display: "flex", flexDirection: "column" }}>
+              Center Description
+              <textarea
+                placeholder="Tell clients about your specialty detailing equipment, tuning licenses..."
+                value={form.description || ""}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                style={{
+                  width: "100%",
+                  padding: "12px",
+                  borderRadius: "8px",
+                  border: "1px solid var(--line-strong)",
+                  background: "#fafaf9",
+                  marginTop: "8px"
+                }}
+                rows={4}
+              />
+            </label>
+            
+            <div style={{ display: "flex", gap: "10px", marginTop: "24px" }}>
+              <button
+                type="submit"
+                className="primary-button"
+                disabled={submitting}
+              >
+                {submitting ? "Saving changes..." : "Save Changes"}
+              </button>
+              <button
+                type="button"
+                className="ghost-button"
+                onClick={() => setEditing(false)}
+              >
+                Cancel
+              </button>
+            </div>
           </form>
         </div>
       )}

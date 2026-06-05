@@ -1,397 +1,469 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { garageService, adminService } from "../api/services";
-import { useAuth } from "../context/AuthContext";
+import { useEffect, useMemo, useState } from "react";
 import {
-  ArrowRight,
+  CalendarCheck2,
+  CarFront,
+  Check,
   CheckCircle2,
-  Sparkles,
-  Star,
+  Gauge,
   MapPin,
-  Phone,
+  Search,
+  ShieldCheck,
+  Star,
+  Wallet,
+  Wrench,
 } from "lucide-react";
+import {
+  adminService,
+  bookingService,
+  garageService,
+  vehicleService,
+} from "../api/services";
+import luxuryHeroCar from "../luxury_hero_car.png";
+import { useAuth } from "../context/AuthContext";
+import LandingPage from "./LandingPage";
+
+const fallbackVehicle = {
+  make: "Range Rover",
+  model: "Autobiography",
+  registration_number: "NYJ 5543",
+  year: "2023",
+};
+
+const trackerSteps = [
+  { title: "Booking Confirmed", status: "Done", done: true, date: "04/09/2026" },
+  { title: "Vehicle Drop-off", status: "Done", done: true, date: "04/10/2026" },
+  { title: "Diagnosis & Inspection", status: "In Progress", active: true, date: "04/11/2026" },
+  { title: "Service / Repair", status: "Pending", date: "04/12/2026" },
+  { title: "Ready for Pickup", status: "Pending", date: "04/13/2026" },
+];
+
+const chartLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
+const fallbackExpenseData = [24, 36, 30, 58, 42, 50];
+const fallbackMileageData = [80, 175, 165, 230, 246, 318];
+
+const buildMonthlyExpenseData = (bookings) => {
+  const values = Array(6).fill(0);
+
+  bookings.forEach((booking) => {
+    const rawDate = booking.scheduled_date || booking.createdAt;
+    const date = rawDate ? new Date(rawDate) : null;
+    const month = date && !Number.isNaN(date.getTime()) ? date.getMonth() : -1;
+
+    if (month >= 0 && month < 6) {
+      values[month] += Number(booking.actual_cost || booking.estimated_cost || 0);
+    }
+  });
+
+  return values.some(Boolean) ? values : fallbackExpenseData;
+};
+
+const buildMileageData = (vehicles, bookings) => {
+  if (!vehicles.length && !bookings.length) return fallbackMileageData;
+
+  const vehicleBase = Math.max(vehicles.length, 1) * 55;
+  return chartLabels.map((_, index) => vehicleBase + bookings.length * 18 + index * 38);
+};
+
+const Sparkline = ({ data, height = 54 }) => {
+  const max = Math.max(...data);
+  const min = Math.min(...data);
+  const points = data
+    .map((value, index) => {
+      const x = (index / (data.length - 1)) * 100;
+      const y = height - ((value - min) / (max - min || 1)) * (height - 10) - 5;
+      return `${x},${y}`;
+    })
+    .join(" ");
+
+  return (
+    <svg className="mini-chart" viewBox={`0 0 100 ${height}`} preserveAspectRatio="none">
+      <polyline points={points} />
+    </svg>
+  );
+};
+
+const AreaChart = ({ data, labels, valuePrefix = "" }) => {
+  const max = Math.max(...data);
+  const min = Math.min(...data);
+  const chartHeight = 150;
+  const points = data.map((value, index) => {
+    const x = (index / (data.length - 1)) * 100;
+    const y = chartHeight - ((value - min) / (max - min || 1)) * 112 - 20;
+    return { x, y, value };
+  });
+  const linePoints = points.map((point) => `${point.x},${point.y}`).join(" ");
+  const fillPoints = `0,${chartHeight} ${linePoints} 100,${chartHeight}`;
+
+  return (
+    <div className="chart-box">
+      <svg viewBox={`0 0 100 ${chartHeight}`} preserveAspectRatio="none">
+        <polygon points={fillPoints} />
+        <polyline points={linePoints} />
+        {points.map((point) => (
+          <circle key={`${point.x}-${point.value}`} cx={point.x} cy={point.y} r="1.8" />
+        ))}
+      </svg>
+      <div className="chart-labels">
+        {labels.map((label) => (
+          <span key={label}>{label}</span>
+        ))}
+      </div>
+      <strong className="chart-value">
+        {valuePrefix}
+        {data[data.length - 1]}
+      </strong>
+    </div>
+  );
+};
 
 export default function HomePage() {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [garages, setGarages] = useState([]);
+  const [bookings, setBookings] = useState([]);
+  const [vehicles, setVehicles] = useState([]);
   const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [dataStatus, setDataStatus] = useState("");
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (user) {
+      fetchDashboardData();
+    }
+  }, [user]);
 
-  const fetchData = async () => {
+  if (!user) {
+    return <LandingPage />;
+  }
+
+  const fetchDashboardData = async () => {
     try {
-      const garagesRes = await garageService.getAll();
-      setGarages(garagesRes.data.slice(0, 3));
+      const [garageRes, statsRes] = await Promise.allSettled([
+        garageService.getAll(),
+        adminService.getStats(),
+      ]);
 
-      // Always fetch stats from admin endpoint if admin
-      // Otherwise just use garage count
-      try {
-        const statsRes = await adminService.getStats();
-        setStats(statsRes.data);
-      } catch {
-        // Not admin, just show garage count
+      if (garageRes.status === "fulfilled") {
+        setGarages(garageRes.value.data);
       }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
+
+      if (statsRes.status === "fulfilled") {
+        setStats(statsRes.value.data);
+      }
+
+      const [bookingRes, vehicleRes] = await Promise.allSettled([
+        bookingService.getMyBookings(),
+        vehicleService.getAll(),
+      ]);
+
+      if (bookingRes.status === "fulfilled") {
+        setBookings(bookingRes.value.data);
+      }
+
+      if (vehicleRes.status === "fulfilled") {
+        setVehicles(vehicleRes.value.data);
+      }
+
+      if (garageRes.status === "rejected") {
+        setDataStatus(
+          "Backend data is not reachable. Start backend on port 5000 to load live database records.",
+        );
+      }
+    } catch {
+      setDataStatus(
+        "Backend data is not reachable. Start backend on port 5000 to load live database records.",
+      );
     }
   };
+
+  const vehicle = vehicles[0] || bookings[0]?.vehicle_id || fallbackVehicle;
+  const activeBooking = bookings.find((booking) =>
+    ["confirmed", "in_progress", "pending"].includes(booking.status),
+  );
+  const topGarage = garages[0];
+
+  const dashboardStats = useMemo(
+    () => ({
+      activeBookings:
+        stats?.bookings?.pending + (stats?.bookings?.confirmed || 0) ||
+        bookings.filter((booking) =>
+          ["pending", "confirmed", "in_progress"].includes(booking.status),
+        ).length ||
+        12,
+      vehicleHealth: vehicles.length ? 96 : 98,
+      serviceCost: activeBooking?.estimated_cost || activeBooking?.actual_cost || 245.5,
+      progress:
+        activeBooking?.status === "completed" ? 100 : activeBooking ? 65 : 60,
+      activeGarages: stats?.garages?.active ?? garages.length,
+      completedBookings: stats?.bookings?.completed ?? 0,
+      users: stats?.users?.total ?? 0,
+    }),
+    [activeBooking, bookings, garages.length, stats, vehicles.length],
+  );
+
+  const monthlyExpense = useMemo(
+    () => buildMonthlyExpenseData(bookings),
+    [bookings],
+  );
+  const mileageData = useMemo(
+    () => buildMileageData(vehicles, bookings),
+    [vehicles, bookings],
+  );
+
+  const kpis = [
+    {
+      label: "Active Bookings",
+      value: dashboardStats.activeBookings,
+      icon: CalendarCheck2,
+      chart: [12, 16, 13, 20, 18, 24],
+      note: "Live queue",
+    },
+    {
+      label: "Vehicle Health Status",
+      value: `${dashboardStats.vehicleHealth}%`,
+      icon: ShieldCheck,
+      chart: [72, 78, 85, 88, 94, dashboardStats.vehicleHealth],
+      note: "Inspection score",
+    },
+    {
+      label: "Est. Service Costs",
+      value: `$${Number(dashboardStats.serviceCost).toFixed(2)}`,
+      icon: Wallet,
+      chart: [180, 220, 210, 245, 230, dashboardStats.serviceCost],
+      note: "Trend",
+    },
+    {
+      label: "Verified Garages",
+      value: dashboardStats.activeGarages,
+      icon: Wrench,
+      chart: [1, 2, 2, 3, 3, dashboardStats.activeGarages || 3],
+      note: "Active centers",
+    },
+  ];
+
   return (
-    <div className="page-content">
-      {/* Hero Section */}
-      <section className="hero-panel">
-        <div className="hero-copy">
-          <span className="hero-badge">
-            <Sparkles size={14} />
-            MERN Stack Final Year Project
-          </span>
+    <div className="page-content dashboard-page">
+      <section className="dashboard-intro-card">
+        <div>
+          <span className="hero-badge">MERN Stack Final Year Project</span>
           <h1>Book trusted garage services with a smarter experience.</h1>
           <p>
-            AutoCare Hub connects customers, garages, and administrators through
-            one professional platform for vehicle registration, service booking,
-            tracking, and feedback.
+            AutoCare Hub brings garage discovery, booking, vehicle tracking, and
+            feedback into one professional service dashboard.
           </p>
-
-          <div className="hero-actions">
-            {!user ? (
-              <>
-                <button
-                  className="primary-button"
-                  onClick={() => navigate("/register")}
-                >
-                  Get Started
-                </button>
-                <button
-                  className="ghost-button"
-                  onClick={() => navigate("/login")}
-                >
-                  Login
-                </button>
-              </>
-            ) : user.role === "customer" ? (
-              <>
-                <button
-                  className="primary-button"
-                  onClick={() => navigate("/bookings")}
-                >
-                  Book a Service
-                </button>
-                <button
-                  className="ghost-button"
-                  onClick={() => navigate("/garages")}
-                >
-                  Explore Garages
-                </button>
-              </>
-            ) : user.role === "garage" ? (
-              <>
-                <button
-                  className="primary-button"
-                  onClick={() => navigate("/garage/bookings")}
-                >
-                  View Bookings
-                </button>
-                <button
-                  className="ghost-button"
-                  onClick={() => navigate("/garage/profile")}
-                >
-                  My Garage
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  className="primary-button"
-                  onClick={() => navigate("/admin")}
-                >
-                  Admin Panel
-                </button>
-              </>
-            )}
-          </div>
-
-          <div className="feature-points">
-            <span>
-              <CheckCircle2 size={16} /> Real-time booking flow
-            </span>
-            <span>
-              <CheckCircle2 size={16} /> Role-based dashboards
-            </span>
-            <span>
-              <CheckCircle2 size={16} /> Feedback-driven quality
-            </span>
+          <div className="intro-actions">
+            <a href="/garages" className="primary-button">
+              Find Garages
+            </a>
+            <a href="/bookings" className="ghost-button">
+              View Bookings
+            </a>
           </div>
         </div>
-
-        {/* Stats Section */}
-        <div className="hero-card">
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "12px",
-            }}
-          >
-            {[
-              {
-                label: "Bookings Completed",
-                value: stats?.bookings?.completed ?? "...",
-                sub: "Live from database",
-                color: "#0066cc",
-                icon: "✅",
-              },
-              {
-                label: "Partner Garages",
-                value: stats?.garages?.active ?? garages.length ?? "...",
-                sub: "Verified stations",
-                color: "#10b981",
-                icon: "🏪",
-              },
-              {
-                label: "Total Customers",
-                value: stats?.users?.total ?? "...",
-                sub: "Registered users",
-                color: "#f59e0b",
-                icon: "👤",
-              },
-              {
-                label: "Total Reviews",
-                value: stats?.feedbacks?.total ?? "...",
-                sub: "Customer feedback",
-                color: "#8b5cf6",
-                icon: "⭐",
-              },
-            ].map((card) => (
-              <div
-                key={card.label}
-                style={{
-                  background: "white",
-                  borderRadius: "12px",
-                  padding: "20px",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-                  borderLeft: `4px solid ${card.color}`,
-                }}
-              >
-                <div style={{ fontSize: "24px", marginBottom: "4px" }}>
-                  {card.icon}
-                </div>
-                <h2
-                  style={{
-                    margin: 0,
-                    fontSize: "36px",
-                    color: card.color,
-                    fontWeight: "800",
-                  }}
-                >
-                  {card.value}
-                </h2>
-                <p
-                  style={{
-                    margin: "4px 0 0",
-                    fontWeight: "600",
-                    fontSize: "14px",
-                    color: "#333",
-                  }}
-                >
-                  {card.label}
-                </p>
-                <p
-                  style={{
-                    margin: "2px 0 0",
-                    fontSize: "12px",
-                    color: "#888",
-                  }}
-                >
-                  {card.sub}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works */}
-      <section className="content-section">
-        <div style={{ textAlign: "center", marginBottom: "32px" }}>
-          <span className="eyebrow">How It Works</span>
-          <h2>Simple 3 step process</h2>
-        </div>
-        <div className="card-grid three-column">
-          {[
-            {
-              step: "01",
-              title: "Register & Add Vehicle",
-              desc: "Create your account and add your vehicle details to get started.",
-            },
-            {
-              step: "02",
-              title: "Find & Book Garage",
-              desc: "Search garages by city or area and book your preferred service.",
-            },
-            {
-              step: "03",
-              title: "Track & Review",
-              desc: "Track your booking status in real time and leave feedback after service.",
-            },
-          ].map((item) => (
-            <article
-              key={item.step}
-              className="info-card"
-              style={{ position: "relative" }}
-            >
-              <div
-                style={{
-                  fontSize: "48px",
-                  fontWeight: "900",
-                  color: "#0066cc20",
-                  lineHeight: 1,
-                }}
-              >
-                {item.step}
-              </div>
-              <h3 style={{ marginTop: "8px" }}>{item.title}</h3>
-              <p>{item.desc}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      {/* Live Garages from DB */}
-      <section className="content-section">
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: "24px",
-          }}
-        >
+        <div className="intro-visual">
+          <img src={luxuryHeroCar} alt="Vehicle service preview" />
           <div>
-            <span className="eyebrow">Live from Database</span>
-            <h2>Top Rated Garages</h2>
+            <strong>{dashboardStats.activeGarages}</strong>
+            <span>trusted partner garages</span>
           </div>
-          <button className="ghost-button" onClick={() => navigate("/garages")}>
-            View All →
-          </button>
         </div>
-
-        {loading ? (
-          <p>Loading garages...</p>
-        ) : garages.length === 0 ? (
-          <p style={{ color: "#888" }}>No active garages yet.</p>
-        ) : (
-          <div className="card-grid three-column">
-            {garages.map((garage) => (
-              <article key={garage._id} className="garage-card">
-                <div className="card-header-row">
-                  <h3>{garage.name}</h3>
-                  <span className="pill">
-                    <Star size={12} /> {garage.rating || 0}
-                  </span>
-                </div>
-                <p>
-                  <MapPin size={14} /> {garage.area}, {garage.city}
-                </p>
-                <p>
-                  <Phone size={14} /> {garage.phone}
-                </p>
-
-                {garage.services_offered?.length > 0 && (
-                  <div
-                    style={{
-                      display: "flex",
-                      flexWrap: "wrap",
-                      gap: "4px",
-                      margin: "8px 0",
-                    }}
-                  >
-                    {garage.services_offered.slice(0, 3).map((s, i) => (
-                      <span
-                        key={i}
-                        style={{
-                          background: "#e8f4ff",
-                          color: "#0066cc",
-                          padding: "2px 8px",
-                          borderRadius: "12px",
-                          fontSize: "12px",
-                        }}
-                      >
-                        {s}
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                <div className="card-footer-row">
-                  <span style={{ color: "green", fontSize: "13px" }}>
-                    ✅ Active
-                  </span>
-                  <button
-                    className="text-link"
-                    onClick={() => navigate("/bookings")}
-                  >
-                    Book Now <ArrowRight size={14} />
-                  </button>
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
       </section>
 
-      {/* Role Based Welcome */}
-      {user && (
-        <section className="content-section">
-          <div
-            style={{
-              background: "#0066cc",
-              borderRadius: "16px",
-              padding: "32px",
-              color: "white",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
+      <section className="dashboard-heading">
+        <div>
+          <span className="eyebrow">Dashboard Overview</span>
+          <h1>
+            Service Status - {vehicle.make} {vehicle.model} (
+            {vehicle.registration_number})
+          </h1>
+        </div>
+        <div className="dashboard-search">
+          <Search size={18} />
+          <input placeholder="Search garages, vehicles, bookings..." />
+        </div>
+      </section>
+
+      {dataStatus && <div className="soft-alert">{dataStatus}</div>}
+
+      <section className="kpi-grid">
+        {kpis.map(({ label, value, icon: Icon, chart, note }) => (
+          <article className="kpi-card" key={label}>
             <div>
-              <h2 style={{ color: "white", margin: 0 }}>
-                Welcome back, {user.full_name}! 👋
-              </h2>
-              <p style={{ margin: "8px 0 0", opacity: 0.8 }}>
-                {user.role === "customer" && "Ready to book your next service?"}
-                {user.role === "garage" &&
-                  "Check your latest bookings and manage your garage."}
-                {user.role === "admin" &&
-                  "Monitor platform activity and manage users."}
+              <p>{label}</p>
+              <strong>{value}</strong>
+              <span>{note}</span>
+            </div>
+            <div className="kpi-visual">
+              <Icon size={18} />
+              <Sparkline data={chart} />
+            </div>
+          </article>
+        ))}
+      </section>
+
+      <section className="dashboard-main-grid">
+        <article className="service-tracker-card">
+          <div className="card-title-row">
+            <div>
+              <h2>Active Vehicle Service Tracker</h2>
+              <p>
+                {vehicle.make} {vehicle.model} ({vehicle.year}) -{" "}
+                {vehicle.registration_number}
               </p>
             </div>
-            <button
-              onClick={() => {
-                if (user.role === "customer") navigate("/bookings");
-                if (user.role === "garage") navigate("/garage/bookings");
-                if (user.role === "admin") navigate("/admin");
-              }}
-              style={{
-                background: "white",
-                color: "#0066cc",
-                border: "none",
-                padding: "12px 24px",
-                borderRadius: "8px",
-                cursor: "pointer",
-                fontWeight: "bold",
-                whiteSpace: "nowrap",
-              }}
-            >
-              Go to Dashboard →
-            </button>
+            <span className="status-badge in_progress">
+              {activeBooking?.status?.replace("_", " ") || "In Progress"}
+            </span>
           </div>
-        </section>
-      )}
+
+          <div className="tracker-line">
+            {trackerSteps.map((step) => (
+              <div
+                className={`tracker-step ${step.done ? "done" : ""} ${
+                  step.active ? "active" : ""
+                }`}
+                key={step.title}
+              >
+                <span>
+                  {step.done ? <Check size={16} /> : step.active ? <Gauge size={16} /> : <Wrench size={16} />}
+                </span>
+                <strong>{step.title}</strong>
+                <small>{step.status}</small>
+                <em>{step.date}</em>
+              </div>
+            ))}
+          </div>
+
+          <div className="wide-progress">
+            <span style={{ width: `${dashboardStats.progress}%` }} />
+            <b>{dashboardStats.progress}%</b>
+          </div>
+
+          <div className="tracker-details">
+            <div>
+              <h3>Service Details</h3>
+              <p>{activeBooking?.service_type || "Full Synthetic Oil Change"}</p>
+              <p>Brake Inspection</p>
+              <p>Tire Rotation</p>
+            </div>
+            <div>
+              <h3>Garage Info</h3>
+              <p>{topGarage?.name || "The Workshop"}</p>
+              <p>
+                <MapPin size={14} /> {topGarage?.area || "Location"},{" "}
+                {topGarage?.city || "Karachi"}
+              </p>
+              <p>
+                <Star size={14} fill="var(--accent-strong)" />{" "}
+                {topGarage?.rating || "4.8"}
+              </p>
+            </div>
+          </div>
+        </article>
+
+        <div className="chart-column">
+          <article className="analytics-card">
+            <div className="card-title-row">
+              <h2>Monthly Service Expenses</h2>
+              <span className="gold-chip">Live Trend</span>
+            </div>
+            <AreaChart
+              data={monthlyExpense}
+              labels={chartLabels}
+              valuePrefix="$"
+            />
+          </article>
+
+          <article className="analytics-card">
+            <div className="card-title-row">
+              <h2>Vehicle Mileage Tracking</h2>
+              <span className="gold-chip">Updated</span>
+            </div>
+            <AreaChart
+              data={mileageData}
+              labels={chartLabels}
+            />
+          </article>
+        </div>
+      </section>
+
+      <section className="dashboard-grid">
+        <article className="vehicle-status-card">
+          <div className="card-title-row">
+            <h2>Vehicle Status</h2>
+            <span className="round-check">
+              <Check size={14} />
+            </span>
+          </div>
+          <span className="field-label">State</span>
+          <strong className="gold-chip">READY FOR FINISHING</strong>
+          <div className="progress-row">
+            <div>
+              <span style={{ width: `${dashboardStats.vehicleHealth}%` }} />
+            </div>
+            <b>{dashboardStats.vehicleHealth}%</b>
+          </div>
+          <p>{dashboardStats.vehicleHealth}% health score</p>
+          <img src={luxuryHeroCar} alt="Luxury vehicle service preview" />
+        </article>
+
+        <article className="service-card">
+          <h2>Active Service</h2>
+          <h3>{activeBooking?.service_type || "Ultimate Luxury Detailing Package"}</h3>
+          <ul>
+            <li>Full Wash</li>
+            <li>Paint Correction</li>
+            <li>Ceramic Coating</li>
+            <li>Interior</li>
+          </ul>
+          <p>
+            Duration: <strong>5h 30m</strong>
+          </p>
+          <hr />
+          <h2>System Details</h2>
+          <div className="vehicle-meta">
+            <span>
+              Users <b>{dashboardStats.users}</b>
+            </span>
+            <span>
+              Garages <b>{dashboardStats.activeGarages}</b>
+            </span>
+            <span>
+              Completed <b>{dashboardStats.completedBookings}</b>
+            </span>
+          </div>
+        </article>
+
+        <div className="side-stack">
+          <article className="mini-card">
+            <h2>Upcoming Appointments</h2>
+            {(bookings.length
+              ? bookings.slice(0, 2)
+              : [{ service_type: "Oil Service" }, { service_type: "Winter Tire Swap" }]
+            ).map((booking, index) => (
+              <div className="appointment-row" key={booking._id || booking.service_type}>
+                <span>
+                  <small>{index === 0 ? "Sep" : "Oct"}</small>
+                  <b>{index === 0 ? "15" : "10"}</b>
+                </span>
+                <strong>{booking.service_type}</strong>
+              </div>
+            ))}
+          </article>
+
+          <article className="mini-card">
+            <h2>Recent Activities</h2>
+            <h3>Completed</h3>
+            <p>
+              <CheckCircle2 size={14} /> Engine Cleaning
+            </p>
+            <p>
+              <CheckCircle2 size={14} /> Tyre Shine
+            </p>
+            <p>
+              <CarFront size={14} /> {vehicles.length || 1} vehicle profile
+            </p>
+          </article>
+        </div>
+      </section>
     </div>
   );
 }

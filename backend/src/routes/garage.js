@@ -9,14 +9,10 @@ const {
   updateGarage,
   adminGetAllGarages,
   toggleGarageStatus,
-} = require("../controllers/garageController");
+} = require("../controllers/garagecontroller");
 
 const { protect } = require("../middleware/authMiddleware");
 const { checkRole } = require("../middleware/roleMiddleware");
-
-// Public routes
-router.get("/", getAllGarages);
-router.get("/:id", getGarageById);
 
 // Garage owner routes
 router.post("/", protect, checkRole("garage"), createGarage);
@@ -31,5 +27,9 @@ router.put(
   checkRole("admin"),
   toggleGarageStatus,
 );
+
+// Public routes
+router.get("/", getAllGarages);
+router.get("/:id", getGarageById);
 
 module.exports = router;
