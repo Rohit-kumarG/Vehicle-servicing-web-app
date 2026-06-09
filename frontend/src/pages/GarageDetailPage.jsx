@@ -127,11 +127,7 @@ export default function GarageDetailPage() {
           <p>{garage.address}</p>
           <p>Bookings completed: {garage.total_bookings || 0}</p>
           <p>Average wait time: {garage.average_wait_time || 0} mins</p>
-          {garage.google_maps_link && (
-            <a className="text-link" href={garage.google_maps_link} target="_blank" rel="noreferrer">
-              Open Google Maps
-            </a>
-          )}
+
         </article>
 
         <article className="analytics-card">

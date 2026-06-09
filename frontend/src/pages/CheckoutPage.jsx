@@ -17,6 +17,7 @@ export default function CheckoutPage() {
     cvv: "",
     name: "",
   });
+  const [payMethod, setPayMethod] = useState("card");
 
   useEffect(() => {
     fetchBooking();
@@ -138,7 +139,26 @@ export default function CheckoutPage() {
         <article className="form-card" style={{ padding: "30px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px", borderBottom: "1px solid var(--line)", paddingBottom: "14px", marginBottom: "20px" }}>
             <CreditCard color="var(--accent-strong)" size={20} />
-            <h3 style={{ margin: 0 }}>Secure Card Checkout</h3>
+            <h3 style={{ margin: 0 }}>Settle Invoice</h3>
+          </div>
+
+          <div style={{ display: "flex", gap: "10px", marginBottom: "16px" }}>
+            <button
+              onClick={() => setPayMethod("card")}
+              className={payMethod === "card" ? "primary-button" : "ghost-button"}
+              style={{ flex: 1, minHeight: "40px", fontSize: "12.5px" }}
+              type="button"
+            >
+              💳 Card Checkout
+            </button>
+            <button
+              onClick={() => setPayMethod("manual")}
+              className={payMethod === "manual" ? "primary-button" : "ghost-button"}
+              style={{ flex: 1, minHeight: "40px", fontSize: "12.5px" }}
+              type="button"
+            >
+              💵 Pay Cash On-site
+            </button>
           </div>
 
           {error && (
@@ -147,65 +167,80 @@ export default function CheckoutPage() {
             </div>
           )}
 
-          <form onSubmit={handlePay} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-            <label>
-              Cardholder Name
-              <input
-                type="text"
-                name="name"
-                placeholder="Olivia Pratt"
-                value={card.name}
-                onChange={handleCardChange}
-                required
-              />
-            </label>
-
-            <label>
-              Card Number
-              <input
-                type="text"
-                name="number"
-                placeholder="4000 1234 5678 9010"
-                value={card.number}
-                onChange={handleCardChange}
-                required
-              />
-            </label>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+          {payMethod === "card" ? (
+            <form onSubmit={handlePay} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
               <label>
-                Expiration Date
+                Cardholder Name
                 <input
                   type="text"
-                  name="expiry"
-                  placeholder="MM/YY"
-                  value={card.expiry}
+                  name="name"
+                  placeholder="Olivia Pratt"
+                  value={card.name}
                   onChange={handleCardChange}
                   required
                 />
               </label>
+
               <label>
-                CVV / CVC Code
+                Card Number
                 <input
-                  type="password"
-                  name="cvv"
-                  placeholder="•••"
-                  value={card.cvv}
+                  type="text"
+                  name="number"
+                  placeholder="4000 1234 5678 9010"
+                  value={card.number}
                   onChange={handleCardChange}
                   required
                 />
               </label>
-            </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", margin: "10px 0", padding: "12px", background: "var(--bg-darker)", borderRadius: "8px", fontSize: "12px", color: "var(--muted)", border: "1px solid var(--line)" }}>
-              <ShieldCheck size={16} color="var(--success)" style={{ flexShrink: 0 }} />
-              <span>Payment is secured with SHA-256 mock encryption. No real charge will occur.</span>
-            </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                <label>
+                  Expiration Date
+                  <input
+                    type="text"
+                    name="expiry"
+                    placeholder="MM/YY"
+                    value={card.expiry}
+                    onChange={handleCardChange}
+                    required
+                  />
+                </label>
+                <label>
+                  CVV / CVC Code
+                  <input
+                    type="password"
+                    name="cvv"
+                    placeholder="•••"
+                    value={card.cvv}
+                    onChange={handleCardChange}
+                    required
+                  />
+                </label>
+              </div>
 
-            <button type="submit" className="primary-button wide-button" disabled={paying} style={{ marginTop: "10px", minHeight: "48px", fontSize: "15px" }}>
-              {paying ? "Authorizing Payment..." : `Settle Invoice — Rs. ${costToPay.toLocaleString()}`}
-            </button>
-          </form>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", margin: "10px 0", padding: "12px", background: "var(--bg-darker)", borderRadius: "8px", fontSize: "12px", color: "var(--muted)", border: "1px solid var(--line)" }}>
+                <ShieldCheck size={16} color="var(--success)" style={{ flexShrink: 0 }} />
+                <span>Payment is secured with SHA-256 mock encryption. No real charge will occur.</span>
+              </div>
+
+              <button type="submit" className="primary-button wide-button" disabled={paying} style={{ marginTop: "10px", minHeight: "48px", fontSize: "15px" }}>
+                {paying ? "Authorizing Payment..." : `Settle Invoice — Rs. ${costToPay.toLocaleString()}`}
+              </button>
+            </form>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              <p style={{ fontSize: "13.5px", color: "var(--text)", lineHeight: "1.6" }}>
+                By choosing this option, you agree to pay **Rs. {costToPay.toLocaleString()}** in cash directly at the workshop counter upon picking up your vehicle.
+              </p>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", margin: "10px 0", padding: "12px", background: "var(--bg-darker)", borderRadius: "8px", fontSize: "12px", color: "var(--muted)", border: "1px solid var(--line)" }}>
+                <ShieldCheck size={16} color="var(--success)" style={{ flexShrink: 0 }} />
+                <span>Manual verification will be performed at the counter.</span>
+              </div>
+              <button onClick={handlePay} className="primary-button wide-button" disabled={paying} style={{ marginTop: "10px", minHeight: "48px", fontSize: "15px" }}>
+                {paying ? "Confirming..." : `Confirm Cash Settlement — Rs. ${costToPay.toLocaleString()}`}
+              </button>
+            </div>
+          )}
         </article>
 
         {/* Right Side: Invoice Summary */}

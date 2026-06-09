@@ -3,12 +3,142 @@ import { bookingService } from "../api/services";
 import { User, Phone, Car, Calendar, AlignLeft, Shield, DollarSign, Clock, CheckCircle, Play, AlertTriangle, MessageSquare } from "lucide-react";
 import ChatPanel from "../components/ChatPanel";
 
+const servicePrices = {
+  "Oil Change": 3500,
+  "Full Synthetic Oil Change": 4500,
+  "Engine Diagnostic": 3000,
+  "Engine Diagnostic & Tuning": 5000,
+  "Brake Pad Replacement": 4500,
+  "Brake Service": 4000,
+  "Wheel Alignment": 2000,
+  "Wheel Alignment & Balancing": 2800,
+  "Tire Rotation": 1200,
+  "Ceramic Coating Detail": 15000,
+  "Complete Detailing Package": 12000,
+  "Car Wash": 1500,
+  "Body Polishing": 6000,
+  "General Mechanical Checkup": 1800,
+  "AC Gas Refill": 3500,
+  "Suspension Repair": 9000,
+  "Battery Replacement": 8500,
+};
+
+const getPrice = (name) => servicePrices[name] || 2500;
+
 export default function GarageBookingsPage() {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
   const [updating, setUpdating] = useState(null);
   const [activeChatBooking, setActiveChatBooking] = useState(null);
+
+  const downloadInvoice = (booking) => {
+    const invoiceWindow = window.open("", "_blank");
+    if (!invoiceWindow) return;
+
+    const cost = booking.actual_cost || booking.estimated_cost || 0;
+    const subtotal = (cost * 0.85).toFixed(0);
+    const gst = (cost * 0.15).toFixed(0);
+
+    const html = `
+      <html>
+        <head>
+          <title>Invoice - Elite AutoCare</title>
+          <style>
+            body { font-family: 'Outfit', 'Inter', sans-serif; color: #1a1e26; padding: 40px; margin: 0; }
+            .invoice-header { display: flex; justify-content: space-between; border-bottom: 2px solid #c5a880; padding-bottom: 20px; margin-bottom: 30px; }
+            .logo { color: #a4865d; font-size: 24px; font-weight: 800; text-transform: uppercase; }
+            .invoice-status { border: 2px solid #3d5c4b; color: #3d5c4b; padding: 6px 12px; font-size: 14px; font-weight: 700; text-transform: uppercase; border-radius: 4px; display: inline-block; margin-top: 10px; }
+            .invoice-details { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 40px; }
+            h3 { color: #a4865d; margin-bottom: 10px; border-bottom: 1px solid #f6f3eb; padding-bottom: 6px; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 40px; }
+            th { background: #f6f3eb; text-align: left; padding: 12px; font-weight: 700; color: #a4865d; border-bottom: 2px solid #c5a880; }
+            td { padding: 12px; border-bottom: 1px solid #f6f3eb; }
+            .totals-table { width: 300px; margin-left: auto; }
+            .totals-table td { border: none; padding: 6px 12px; }
+            .totals-table tr.grand-total td { font-weight: 800; font-size: 16px; color: #a4865d; border-top: 1px dashed #c5a880; padding-top: 10px; }
+            .footer { text-align: center; color: #5e6675; font-size: 12px; margin-top: 60px; border-top: 1px solid #f6f3eb; padding-top: 20px; }
+          </style>
+        </head>
+        <body>
+          <div class="invoice-header">
+            <div>
+              <div class="logo">Elite AutoCare Hub</div>
+              <span class="invoice-status">Paid Receipt</span>
+            </div>
+            <div style="text-align: right;">
+              <h2>INVOICE</h2>
+              <p style="margin: 4px 0;">Ref: #INV-${booking._id.slice(-6).toUpperCase()}</p>
+              <p style="margin: 4px 0; color: #5e6675;">Issued: ${new Date().toLocaleDateString()}</p>
+            </div>
+          </div>
+
+          <div class="invoice-details">
+            <div>
+              <h3>Issued By</h3>
+              <strong>${booking.garage_id?.name || "Service Station"}</strong>
+              <p style="margin: 4px 0; color: #5e6675;">${booking.garage_id?.address || "Vetted Workshop Location"}</p>
+              <p style="margin: 4px 0; color: #5e6675;">${booking.garage_id?.city || ""}</p>
+              <p style="margin: 4px 0; color: #5e6675;">Phone: ${booking.garage_id?.phone || ""}</p>
+            </div>
+            <div>
+              <h3>Billed To</h3>
+              <strong>${booking.customer_id?.full_name || "Valet Customer"}</strong>
+              <p style="margin: 4px 0; color: #5e6675;">Vehicle: ${booking.vehicle_id ? `${booking.vehicle_id.make} ${booking.vehicle_id.model} (${booking.vehicle_id.registration_number})` : "Valet Customer"}</p>
+              <p style="margin: 4px 0; color: #5e6675;">Service Date: ${booking.scheduled_date}</p>
+            </div>
+          </div>
+
+          <h3>Service Description</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Service Item</th>
+                <th style="text-align: right;">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${booking.service_type.split(", ").map(s => `
+                <tr>
+                  <td>${s}</td>
+                  <td style="text-align: right;">Rs. ${getPrice(s).toLocaleString()}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+
+          <table class="totals-table">
+            <tr>
+              <td>Subtotal:</td>
+              <td style="text-align: right;">Rs. ${Number(subtotal).toLocaleString()}</td>
+            </tr>
+            <tr>
+              <td>GST Tax (15%):</td>
+              <td style="text-align: right;">Rs. ${Number(gst).toLocaleString()}</td>
+            </tr>
+            <tr class="grand-total">
+              <td>Grand Total:</td>
+              <td style="text-align: right;">Rs. ${Number(cost).toLocaleString()}</td>
+            </tr>
+          </table>
+
+          <div class="footer">
+            <p>Thank you for choosing Elite AutoCare Hub for your premium vehicle needs.</p>
+            <p>&copy; ${new Date().getFullYear()} Elite AutoCare Hub. All rights reserved.</p>
+          </div>
+
+          <script>
+            window.onload = function() {
+              window.print();
+            };
+          </script>
+        </body>
+      </html>
+    `;
+
+    invoiceWindow.document.write(html);
+    invoiceWindow.document.close();
+  };
 
   useEffect(() => {
     fetchBookings();
@@ -282,6 +412,28 @@ export default function GarageBookingsPage() {
                       }}
                     >
                       <MessageSquare size={12} /> Chat
+                    </button>
+                  )}
+
+                  {booking.status === "completed" && (
+                    <button
+                      onClick={() => downloadInvoice(booking)}
+                      style={{
+                        background: "var(--accent-glow)",
+                        color: "var(--accent-strong)",
+                        border: "1px solid var(--line-strong)",
+                        padding: "6px 12px",
+                        borderRadius: "6px",
+                        cursor: "pointer",
+                        fontSize: "11.5px",
+                        fontWeight: "600",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "4px",
+                        minHeight: "32px"
+                      }}
+                    >
+                      🖨️ Receipt
                     </button>
                   )}
 

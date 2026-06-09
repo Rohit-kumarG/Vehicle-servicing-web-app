@@ -3032,4 +3032,57 @@ body:has(.landing-frame) #root {
   }
 }
 
+/* Leaflet Maps Custom CSS Styles */
+.leaflet-container {
+  font-family: 'Outfit', 'Inter', sans-serif !important;
+  border-radius: var(--radius-md) !important;
+  border: 1px solid var(--line-strong) !important;
+  box-shadow: var(--shadow) !important;
+  z-index: 1 !important;
+}
+.map-popup-card {
+  padding: 4px;
+}
+.map-popup-card h4 {
+  margin: 0 0 4px 0 !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  color: #1e2229 !important;
+}
+.map-popup-card p {
+  margin: 0 0 6px 0 !important;
+  font-size: 11px !important;
+  color: #5e6675 !important;
+}
+.map-popup-card button {
+  background: #bd8e4e !important;
+  color: #ffffff !important;
+  border: none !important;
+  padding: 5px 10px !important;
+  border-radius: 6px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  width: 100% !important;
+  text-align: center !important;
+}
+.map-popup-card button:hover {
+  background: #a4865d !important;
+}
 
+.elite-sidebar {
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), flex-basis 0.25s cubic-bezier(0.4, 0, 0.2, 1), padding 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+.elite-sidebar.collapsed {
+  width: 80px !important;
+  flex: 0 0 80px !important;
+  padding: 26px 8px !important;
+}
+.elite-sidebar.collapsed .brand-lockup {
+  justify-content: center !important;
+  margin-bottom: 30px !important;
+}
+.elite-sidebar.collapsed .elite-nav span {
+  padding: 0 !important;
+  justify-content: center !important;
+}

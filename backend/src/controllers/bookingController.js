@@ -1,6 +1,7 @@
 const Booking = require("../models/booking");
 const Garage = require("../models/garage");
 const Notification = require("../models/notification");
+
 // ==========================================
 // CREATE BOOKING
 // POST /api/bookings
@@ -47,6 +48,7 @@ const createBooking = async (req, res) => {
     await Garage.findByIdAndUpdate(garage_id, {
       $inc: { total_bookings: 1 },
     });
+
     // Notify garage owner
     await Notification.create({
       user_id: garage.owner_id,
@@ -62,6 +64,7 @@ const createBooking = async (req, res) => {
       message: `Your booking for ${service_type} on ${scheduled_date} has been created`,
       type: "booking",
     });
+
     res.status(201).json({
       message: "Booking created successfully",
       booking,
@@ -104,6 +107,7 @@ const getGarageBookings = async (req, res) => {
 
     const bookings = await Booking.find({ garage_id: garage._id })
       .populate("customer_id", "full_name phone")
+      .populate("garage_id")
       .populate("vehicle_id", "make model year registration_number")
       .sort({ createdAt: -1 });
 
@@ -153,10 +157,6 @@ const updateBookingStatus = async (req, res) => {
       return res.status(404).json({ message: "No garage found for this user" });
     }
 
-    // Debug check - remove after fixing
-    console.log("Garage ID:", garage._id.toString());
-    console.log("Booking Garage ID:", booking.garage_id.toString());
-
     // Check if booking belongs to this garage
     if (garage._id.toString() !== booking.garage_id.toString()) {
       return res.status(403).json({
@@ -172,7 +172,6 @@ const updateBookingStatus = async (req, res) => {
         status,
         estimated_cost: estimated_cost || booking.estimated_cost,
         actual_cost: actual_cost || booking.actual_cost,
-
         notes: notes || booking.notes,
       },
       { new: true },
@@ -185,6 +184,7 @@ const updateBookingStatus = async (req, res) => {
       message: `Your booking for ${booking.service_type} is now ${status}`,
       type: "booking",
     });
+
     res.status(200).json({
       message: "Booking status updated successfully",
       booking: updatedBooking,
@@ -246,6 +246,10 @@ const adminGetAllBookings = async (req, res) => {
   }
 };
 
+// ==========================================
+// PAY BOOKING (customer)
+// PUT /api/bookings/:id/pay
+// ==========================================
 const payBooking = async (req, res) => {
   try {
     const booking = await Booking.findById(req.params.id);

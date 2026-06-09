@@ -12,6 +12,7 @@ import {
   UserRound,
   Wrench,
 } from "lucide-react";
+import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import NotificationBell from "../components/NotificationBell";
 import { useAuth } from "../context/AuthContext";
@@ -19,6 +20,7 @@ import { useAuth } from "../context/AuthContext";
 export default function AppShell() {
   const { user, loading, logout } = useAuth();
   const navigate = useNavigate();
+  const [collapsed, setCollapsed] = useState(false);
 
   if (loading) {
     return (
@@ -69,43 +71,34 @@ export default function AppShell() {
 
   return (
     <div className="app-frame">
-      <aside className="elite-sidebar">
+      <aside className={`elite-sidebar ${collapsed ? "collapsed" : ""}`}>
         <button className="brand-lockup" onClick={() => navigate("/")}>
           <ShieldCheck size={31} strokeWidth={1.7} />
-          <span>
-            <strong>ELITE VEHICLE</strong>
-            <small>SERVICES</small>
-          </span>
+          {!collapsed && (
+            <span>
+              <strong>GARAGE WALA</strong>
+            </span>
+          )}
         </button>
 
         <nav className="elite-nav">
           {links.map(({ to, label, icon: Icon }) => (
             <NavLink key={to + label} to={to} end={to === "/"}>
               {({ isActive }) => (
-                <span className={isActive ? "active" : ""}>
+                <span className={isActive ? "active" : ""} title={label}>
                   <Icon size={18} strokeWidth={1.7} />
-                  {label}
+                  {!collapsed && label}
                 </span>
               )}
             </NavLink>
           ))}
 
-          {user?.role === "customer" && (
-            <NavLink to="/bookings">
-              {({ isActive }) => (
-                <span className={isActive ? "active" : ""}>
-                  <CreditCard size={18} strokeWidth={1.7} />
-                  Billing
-                </span>
-              )}
-            </NavLink>
-          )}
 
           <NavLink to="/profile">
             {({ isActive }) => (
-              <span className={isActive ? "active" : ""}>
+              <span className={isActive ? "active" : ""} title="Profile">
                 <UserRound size={18} strokeWidth={1.7} />
-                Profile
+                {!collapsed && "Profile"}
               </span>
             )}
           </NavLink>
@@ -114,7 +107,7 @@ export default function AppShell() {
 
       <section className="elite-main">
         <header className="elite-topbar">
-          <button className="icon-button" aria-label="Menu">
+          <button className="icon-button" onClick={() => setCollapsed(!collapsed)} aria-label="Menu">
             <Menu size={18} />
           </button>
 

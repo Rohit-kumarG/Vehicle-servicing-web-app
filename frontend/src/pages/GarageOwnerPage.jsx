@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { garageService } from "../api/services";
 import { AlertCircle, CheckCircle, Search, MapPin, Phone, Mail, Award, Clock, Star, Edit, AlignLeft, Info } from "lucide-react";
 
@@ -14,6 +14,74 @@ const standardServicesList = [
   "AC Gas Refill",
   "Battery Replacement"
 ];
+
+const LeafletMapPicker = ({ lat, lon, onChangeCoords }) => {
+  const mapRef = useRef(null);
+  const markerRef = useRef(null);
+
+  useEffect(() => {
+    const L = window.L;
+    if (!L) return;
+
+    if (!mapRef.current) {
+      const initialCenter = lat && lon ? [lat, lon] : [30.3753, 69.3451];
+      const map = L.map("leaflet-picker-map", {
+        center: initialCenter,
+        zoom: lat && lon ? 15 : 6
+      });
+
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(map);
+
+      const marker = L.marker(initialCenter, { draggable: true }).addTo(map);
+
+      marker.on("dragend", function (event) {
+        const position = marker.getLatLng();
+        onChangeCoords(position.lat, position.lng);
+      });
+
+      map.on("click", function (event) {
+        marker.setLatLng(event.latlng);
+        onChangeCoords(event.latlng.lat, event.latlng.lng);
+      });
+
+      mapRef.current = map;
+      markerRef.current = marker;
+    }
+
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+        markerRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (mapRef.current && markerRef.current && lat && lon) {
+      const newPos = [Number(lat), Number(lon)];
+      markerRef.current.setLatLng(newPos);
+      mapRef.current.setView(newPos, 15);
+    }
+  }, [lat, lon]);
+
+  return (
+    <div 
+      id="leaflet-picker-map" 
+      style={{ 
+        height: "250px", 
+        width: "100%", 
+        borderRadius: "8px", 
+        border: "1px solid var(--line-strong)",
+        marginTop: "10px",
+        marginBottom: "10px",
+        zIndex: 1
+      }} 
+    />
+  );
+};
 
 export default function GarageOwnerPage() {
   const [garage, setGarage] = useState(null);
@@ -77,6 +145,28 @@ export default function GarageOwnerPage() {
     }
   }, [editing, garage]);
 
+  const [gpsLoading, setGpsLoading] = useState(false);
+
+  const handleUseGPS = () => {
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser.");
+      return;
+    }
+    setGpsLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        handleMapPickerChange(position.coords.latitude, position.coords.longitude);
+        setGpsLoading(false);
+      },
+      (error) => {
+        console.error(error);
+        alert("Unable to fetch your location. Please select it manually on the map.");
+        setGpsLoading(false);
+      },
+      { enableHighAccuracy: true }
+    );
+  };
+
   const fetchMyGarage = async () => {
     try {
       const res = await garageService.getMyGarage();
@@ -134,6 +224,46 @@ export default function GarageOwnerPage() {
     }
     setLocationQuery(place.display_name.substring(0, 60));
     setLocationSuggestions([]);
+  };
+
+  const handleMapPickerChange = async (lat, lon) => {
+    const latNum = parseFloat(lat);
+    const lonNum = parseFloat(lon);
+    
+    if (editing) {
+      setForm((prev) => ({ ...prev, latitude: latNum, longitude: lonNum }));
+    } else {
+      setCreateForm((prev) => ({ ...prev, latitude: latNum, longitude: lonNum }));
+    }
+
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latNum}&lon=${lonNum}`
+      );
+      const data = await res.json();
+      if (data && data.address) {
+        const area = data.address.suburb || data.address.neighbourhood || data.address.county || data.address.village || "";
+        const city = data.address.city || data.address.town || data.address.city_district || "";
+        const address = data.display_name.substring(0, 100);
+
+        const updateObj = {
+          area: area,
+          city: city,
+          address: address,
+          latitude: latNum,
+          longitude: lonNum
+        };
+
+        if (editing) {
+          setForm((prev) => ({ ...prev, ...updateObj }));
+        } else {
+          setCreateForm((prev) => ({ ...prev, ...updateObj }));
+        }
+        setLocationQuery(data.display_name.substring(0, 60));
+      }
+    } catch (err) {
+      console.error("Reverse geocoding error:", err);
+    }
   };
 
   const handleUpdate = async (e) => {
@@ -246,7 +376,18 @@ export default function GarageOwnerPage() {
 
                 {/* Location Search Input */}
                 <label style={{ gridColumn: "1 / -1", position: "relative" }}>
-                  Search Maps Location Coordinates
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                    <span>Search Maps Location Coordinates</span>
+                    <button
+                      type="button"
+                      onClick={handleUseGPS}
+                      disabled={gpsLoading}
+                      className="ghost-button"
+                      style={{ padding: "4px 12px", minHeight: "30px", fontSize: "11.5px", background: "var(--accent-glow)", color: "var(--accent-strong)", border: "1px solid var(--accent)" }}
+                    >
+                      📍 {gpsLoading ? "Acquiring GPS..." : "Use My Live Location"}
+                    </button>
+                  </div>
                   <div style={{ position: "relative" }}>
                     <Search size={14} color="var(--accent-strong)" style={{ position: "absolute", left: "12px", top: "14px" }} />
                     <input
@@ -344,6 +485,15 @@ export default function GarageOwnerPage() {
                   />
                 </label>
 
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <span style={{ fontSize: "12.5px", fontWeight: "600", color: "var(--text)" }}>Interactive Location Pin-Drop Map:</span>
+                  <LeafletMapPicker 
+                    lat={createForm.latitude} 
+                    lon={createForm.longitude} 
+                    onChangeCoords={handleMapPickerChange} 
+                  />
+                </div>
+
                 {createForm.latitude && (
                   <div
                     style={{
@@ -436,14 +586,6 @@ export default function GarageOwnerPage() {
                 )}
               </div>
 
-              <label style={{ marginTop: "16px", display: "flex", flexDirection: "column" }}>
-                Google Maps Navigation Link
-                <input
-                  placeholder="https://maps.google.com/?q=..."
-                  value={createForm.google_maps_link}
-                  onChange={(e) => setCreateForm({ ...createForm, google_maps_link: e.target.value })}
-                />
-              </label>
 
               <label style={{ marginTop: "16px", display: "flex", flexDirection: "column" }}>
                 Center Description
@@ -595,7 +737,18 @@ export default function GarageOwnerPage() {
 
               {/* Location Search Input */}
               <label style={{ gridColumn: "1 / -1", position: "relative" }}>
-                Search Maps Location Coordinates
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                  <span>Search Maps Location Coordinates</span>
+                  <button
+                    type="button"
+                    onClick={handleUseGPS}
+                    disabled={gpsLoading}
+                    className="ghost-button"
+                    style={{ padding: "4px 12px", minHeight: "30px", fontSize: "11.5px", background: "var(--accent-glow)", color: "var(--accent-strong)", border: "1px solid var(--accent)" }}
+                  >
+                    📍 {gpsLoading ? "Acquiring GPS..." : "Use My Live Location"}
+                  </button>
+                </div>
                 <div style={{ position: "relative" }}>
                   <Search size={14} color="var(--accent-strong)" style={{ position: "absolute", left: "12px", top: "14px" }} />
                   <input
@@ -693,6 +846,15 @@ export default function GarageOwnerPage() {
                 />
               </label>
 
+              <div style={{ gridColumn: "1 / -1" }}>
+                <span style={{ fontSize: "12.5px", fontWeight: "600", color: "var(--text)" }}>Interactive Location Pin-Drop Map:</span>
+                <LeafletMapPicker 
+                  lat={form.latitude} 
+                  lon={form.longitude} 
+                  onChangeCoords={handleMapPickerChange} 
+                />
+              </div>
+
               {form.latitude && (
                 <div
                   style={{
@@ -785,14 +947,6 @@ export default function GarageOwnerPage() {
               )}
             </div>
 
-            <label style={{ marginTop: "16px", display: "flex", flexDirection: "column" }}>
-              Google Maps Navigation Link
-              <input
-                placeholder="https://maps.google.com/?q=..."
-                value={form.google_maps_link || ""}
-                onChange={(e) => setForm({ ...form, google_maps_link: e.target.value })}
-              />
-            </label>
 
             <label style={{ marginTop: "16px", display: "flex", flexDirection: "column" }}>
               Center Description

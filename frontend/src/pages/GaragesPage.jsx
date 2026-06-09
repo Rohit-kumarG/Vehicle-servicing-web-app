@@ -38,15 +38,94 @@ const getDistanceKm = (garage, userLocation) => {
 };
 
 const calculateAIScore = (garage, userLocation) => {
-  const ratingScore = (garage.rating || 0) * 20;
-  const bookingScore = Math.min((garage.total_bookings || 0) * 2, 30);
-  const waitScore = Math.max(0, 20 - (garage.average_wait_time || 0));
   const distanceKm = getDistanceKm(garage, userLocation);
-  const distanceScore = distanceKm === null ? 0 : Math.max(0, 30 - distanceKm * 2);
+  // Distance score: max 60 points, subtracting 4 points per kilometer
+  const distanceScore = distanceKm === null ? 0 : Math.max(0, 60 - distanceKm * 4);
+  
+  // Rating score: max 30 points
+  const ratingScore = (garage.rating || 5.0) * 6;
+  
+  // Popularity/bookings score: max 10 points
+  const popularityScore = Math.min((garage.total_bookings || 0) * 0.5, 10);
 
   return Math.min(
     100,
-    Math.round(ratingScore + bookingScore + waitScore + distanceScore),
+    Math.round(distanceScore + ratingScore + popularityScore),
+  );
+};
+
+const LeafletMap = ({ garages, userLocation, onSelectGarage }) => {
+  useEffect(() => {
+    const L = window.L;
+    if (!L) return;
+
+    let center = [30.3753, 69.3451]; // Default Pakistan center
+    if (userLocation && userLocation.lat && userLocation.lon) {
+      center = [Number(userLocation.lat), Number(userLocation.lon)];
+    } else {
+      const firstWithCoords = garages.find(g => hasCoords(g.latitude, g.longitude));
+      if (firstWithCoords) {
+        center = [Number(firstWithCoords.latitude), Number(firstWithCoords.longitude)];
+      }
+    }
+
+    const map = L.map("leaflet-garage-map", {
+      center: center,
+      zoom: 12
+    });
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    // Add user marker if location available
+    if (userLocation && userLocation.lat && userLocation.lon) {
+      const userIcon = L.divIcon({
+        html: '<div style="background-color: #bd8e4e; width: 14px; height: 14px; border: 3px solid white; border-radius: 50%; box-shadow: 0 0 10px rgba(0,0,0,0.5);"></div>',
+        className: 'user-gps-marker',
+        iconSize: [14, 14],
+        iconAnchor: [7, 7]
+      });
+      L.marker([Number(userLocation.lat), Number(userLocation.lon)], { icon: userIcon })
+        .addTo(map)
+        .bindPopup("<b>Your Current Position</b>")
+        .openPopup();
+    }
+
+    // Add garages
+    garages.forEach((garage) => {
+      if (hasCoords(garage.latitude, garage.longitude)) {
+        const marker = L.marker([Number(garage.latitude), Number(garage.longitude)]).addTo(map);
+        const popupContent = document.createElement("div");
+        popupContent.className = "map-popup-card";
+        popupContent.innerHTML = `
+          <h4>${garage.name}</h4>
+          <p>${garage.area || ""}, ${garage.city || ""}</p>
+          <button id="btn-${garage._id}">View Details</button>
+        `;
+        popupContent.querySelector("button").addEventListener("click", () => {
+          onSelectGarage(garage._id);
+        });
+        marker.bindPopup(popupContent);
+      }
+    });
+
+    return () => {
+      map.remove();
+    };
+  }, [garages, userLocation]);
+
+  return (
+    <div 
+      id="leaflet-garage-map" 
+      style={{ 
+        height: "450px", 
+        width: "100%", 
+        borderRadius: "var(--radius-md)", 
+        border: "1px solid var(--line)",
+        boxShadow: "var(--shadow)"
+      }} 
+    />
   );
 };
 
@@ -389,51 +468,13 @@ export default function GaragesPage() {
       </p>
 
       {viewMode === "map" && filtered.length > 0 && (
-        <section className="garage-map-overview">
-          <div className="garage-map-canvas">
-            {filtered
-              .filter((garage) => hasCoords(garage.latitude, garage.longitude))
-              .slice(0, 12)
-              .map((garage, index) => {
-                const lat = Number(garage.latitude);
-                const lon = Number(garage.longitude);
-                const x = 12 + ((Math.abs(lon * 1000) + index * 13) % 76);
-                const y = 14 + ((Math.abs(lat * 1000) + index * 17) % 70);
-                const distance = getDistanceKm(garage, userLocation);
-
-                return (
-                  <button
-                    key={garage._id}
-                    className="garage-map-marker"
-                    style={{ left: `${x}%`, top: `${y}%` }}
-                    onClick={() => navigate(`/garages/${garage._id}`)}
-                    title={garage.name}
-                  >
-                    <span>{index + 1}</span>
-                    <small>{distance !== null ? `${distance} km` : garage.city}</small>
-                  </button>
-                );
-              })}
-          </div>
-          <div className="garage-map-list">
-            <h3>GPS Distance Ranking</h3>
-            {filtered.slice(0, 6).map((garage, index) => {
-              const distance = getDistanceKm(garage, userLocation);
-              return (
-                <button key={garage._id} onClick={() => navigate(`/garages/${garage._id}`)}>
-                  <strong>{index + 1}. {garage.name}</strong>
-                  <span>
-                    {distance !== null
-                      ? `${distance} km away`
-                      : hasCoords(garage.latitude, garage.longitude)
-                        ? "Coordinates saved"
-                        : "Location coordinates missing"}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </section>
+        <div style={{ marginBottom: "24px" }}>
+          <LeafletMap 
+            garages={filtered} 
+            userLocation={userLocation} 
+            onSelectGarage={(id) => navigate(`/garages/${id}`)} 
+          />
+        </div>
       )}
 
       {/* Grids / List of centers */}
@@ -600,24 +641,6 @@ export default function GaragesPage() {
                     marginTop: "auto" 
                   }}
                 >
-                  {garage.google_maps_link && (
-                    <a
-                      href={garage.google_maps_link}
-                      target="_blank"
-                      rel="noreferrer"
-                      style={{
-                        color: "var(--accent-strong)",
-                        fontSize: "12px",
-                        fontWeight: "600",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "4px"
-                      }}
-                    >
-                      View Map Coordinates <ChevronRight size={12} />
-                    </a>
-                  )}
-
                   <button
                     onClick={() => navigate(`/garages/${garage._id}`)}
                     className="ghost-button"
