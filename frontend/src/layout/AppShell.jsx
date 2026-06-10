@@ -21,6 +21,7 @@ export default function AppShell() {
   const { user, loading, logout } = useAuth();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   if (loading) {
     return (
@@ -69,10 +70,23 @@ export default function AppShell() {
   const displayName = user?.full_name || "Olivia P.";
   const initial = displayName.charAt(0).toUpperCase();
 
+  const handleBrandClick = () => {
+    navigate("/");
+    setMobileOpen(false);
+  };
+
+  const toggleSidebar = () => {
+    setCollapsed(!collapsed);
+    setMobileOpen(!mobileOpen);
+  };
+
   return (
     <div className="app-frame">
-      <aside className={`elite-sidebar ${collapsed ? "collapsed" : ""}`}>
-        <button className="brand-lockup" onClick={() => navigate("/")}>
+      {mobileOpen && (
+        <div className="sidebar-backdrop" onClick={() => setMobileOpen(false)} />
+      )}
+      <aside className={`elite-sidebar ${collapsed ? "collapsed" : ""} ${mobileOpen ? "mobile-open" : ""}`}>
+        <button className="brand-lockup" onClick={handleBrandClick}>
           <ShieldCheck size={31} strokeWidth={1.7} />
           {!collapsed && (
             <span>
@@ -83,7 +97,7 @@ export default function AppShell() {
 
         <nav className="elite-nav">
           {links.map(({ to, label, icon: Icon }) => (
-            <NavLink key={to + label} to={to} end={to === "/"}>
+            <NavLink key={to + label} to={to} end={to === "/"} onClick={() => setMobileOpen(false)}>
               {({ isActive }) => (
                 <span className={isActive ? "active" : ""} title={label}>
                   <Icon size={18} strokeWidth={1.7} />
@@ -94,7 +108,7 @@ export default function AppShell() {
           ))}
 
 
-          <NavLink to="/profile">
+          <NavLink to="/profile" onClick={() => setMobileOpen(false)}>
             {({ isActive }) => (
               <span className={isActive ? "active" : ""} title="Profile">
                 <UserRound size={18} strokeWidth={1.7} />
@@ -107,7 +121,7 @@ export default function AppShell() {
 
       <section className="elite-main">
         <header className="elite-topbar">
-          <button className="icon-button" onClick={() => setCollapsed(!collapsed)} aria-label="Menu">
+          <button className="icon-button" onClick={toggleSidebar} aria-label="Menu">
             <Menu size={18} />
           </button>
 

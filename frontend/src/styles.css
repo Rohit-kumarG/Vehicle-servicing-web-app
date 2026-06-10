@@ -3086,3 +3086,116 @@ body:has(.landing-frame) #root {
   padding: 0 !important;
   justify-content: center !important;
 }
+
+/* Responsive Design System for Mobile Screen Sizes */
+@media (max-width: 768px) {
+  #root {
+    padding: 0;
+  }
+
+  .app-frame {
+    height: 100vh;
+    min-height: auto;
+    border-radius: 0;
+    border: none;
+    max-width: 100%;
+    box-shadow: none;
+  }
+
+  /* Sidebar styling on mobile: off-canvas sliding drawer */
+  .elite-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    z-index: 1000;
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    background: #ffffff;
+    box-shadow: 10px 0 30px rgba(0, 0, 0, 0.15);
+    flex: none !important;
+    width: 280px !important;
+  }
+
+  .elite-sidebar.mobile-open {
+    transform: translateX(0);
+  }
+
+  /* Backdrop filter when sidebar is open */
+  .sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(4px);
+    z-index: 999;
+  }
+
+  /* Adjust main container area */
+  .elite-main {
+    width: 100%;
+  }
+
+  .elite-content {
+    padding: 20px;
+  }
+
+  .elite-topbar {
+    padding: 0 20px;
+  }
+
+  /* Adjust grids and items for single column layout on mobile */
+  .dashboard-intro-card {
+    grid-template-columns: 1fr;
+    padding: 24px;
+  }
+
+  .dashboard-intro-card h1 {
+    font-size: 2.2rem;
+  }
+
+  .intro-visual {
+    min-height: 200px;
+  }
+
+  .kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dashboard-main-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .garage-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .garage-map-overview {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .three-column, .four-column {
+    grid-template-columns: 1fr;
+  }
+
+  .owner-earnings-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .owner-earnings-grid {
+    grid-template-columns: 1fr;
+  }
+}
