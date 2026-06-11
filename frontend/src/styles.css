@@ -1946,29 +1946,36 @@ p {
     flex-direction: column;
   }
 
+  /* Keep sidebar drawer vertical on mobile */
   .elite-sidebar {
-    width: 100%;
-    flex: none;
-    padding: 16px;
+    width: 280px;
+    padding: 26px 18px;
+    display: flex;
+    flex-direction: column;
   }
 
   .brand-lockup {
-    margin-bottom: 16px;
+    margin-bottom: 24px;
   }
 
   .elite-nav {
-    flex-direction: row;
-    overflow-x: auto;
-    padding-bottom: 4px;
+    flex-direction: column;
+    overflow-y: auto;
+    gap: 8px;
   }
 
   .elite-nav span {
-    min-width: max-content;
+    min-width: 0;
   }
 
+  /* Topbar must remain horizontal on mobile */
   .elite-topbar {
-    height: auto;
-    padding: 14px 16px;
+    height: 76px;
+    padding: 0 16px;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
   }
 
   .elite-content {
@@ -1980,15 +1987,24 @@ p {
   }
 
   .topbar {
-    flex-direction: column;
-    align-items: flex-start;
+    flex-direction: row;
+    align-items: center;
     gap: 12px;
   }
 
-  .hero-actions, .topbar-actions {
+  /* Actions inside topbar must remain horizontal */
+  .hero-actions {
     flex-direction: column;
     align-items: stretch;
     width: 100%;
+  }
+
+  .topbar-actions {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 10px !important;
+    width: auto !important;
   }
 
   .hero-copy {
@@ -2000,15 +2016,11 @@ p {
     grid-template-columns: 1fr;
   }
 
-  .dashboard-heading,
-  .elite-topbar {
+  .dashboard-heading {
     align-items: flex-start;
-  }
-
-  .dashboard-heading,
-  .topbar-actions {
     flex-direction: column;
   }
+
 
   .dashboard-search,
   .kpi-grid,
@@ -3190,12 +3202,172 @@ body:has(.landing-frame) #root {
   }
 }
 
-@media (max-width: 480px) {
+.mobile-bottom-nav {
+  display: none;
+}
+
+.topbar-brand-mobile {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .mobile-menu-btn {
+    display: none !important;
+  }
+  
+  .topbar-brand-mobile {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 800;
+    color: var(--text);
+    font-size: 1.1rem;
+    letter-spacing: -0.5px;
+    cursor: pointer;
+  }
+  
+  .topbar-brand-mobile svg {
+    color: var(--accent-strong);
+  }
+
+  .username-text {
+    display: none;
+  }
+
+  .elite-content {
+    padding-bottom: 90px !important;
+  }
+
+  .mobile-bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--line-strong);
+    z-index: 999;
+    justify-content: space-around;
+    align-items: center;
+    padding: 0 10px;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    box-shadow: 0 -4px 20px rgba(80, 63, 35, 0.08);
+  }
+
+  .mobile-bottom-nav a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    transition: all 0.2s ease;
+  }
+
+  .mobile-bottom-nav a span {
+    display: flex;
+    flex-direction: row; /* Horizontal alignment like desktop */
+    align-items: center;
+    justify-content: center;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--muted);
+    gap: 6px;
+    padding: 8px 12px;
+    border-radius: 100px;
+    transition: all 0.2s ease;
+  }
+
+  .mobile-bottom-nav a span.active {
+    color: var(--accent-strong);
+    background: var(--accent-glow); /* Pill background like desktop */
+    font-weight: 700;
+  }
+
+  .mobile-bottom-nav a span.active svg {
+    color: var(--accent-strong);
+    filter: drop-shadow(0 2px 6px var(--accent-glow));
+  }
+
+  .mobile-bottom-nav .nav-label {
+    font-size: 0.75rem;
+  }
+
+  /* Keep KPI Grid as 2 columns on mobile instead of stacking vertically */
   .kpi-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  .kpi-card {
+    grid-template-columns: 1fr !important; /* Stack details inside the card */
+    min-height: auto !important;
+    padding: 12px !important;
+  }
+
+  .kpi-visual {
+    align-items: flex-start !important;
+    margin-top: 8px;
+  }
+
+  .mini-chart {
+    width: 100% !important;
+    height: 36px !important;
+  }
+
+  .landing-hero h1 {
+    font-size: 2.0rem !important;
+    line-height: 1.25 !important;
+  }
+  
+  .landing-hero-content {
+    padding: 0 10px;
+  }
+  
+  .landing-cta h2 {
+    font-size: 1.8rem !important;
+  }
+  
+  .landing-cta p {
+    font-size: 1.0rem !important;
+  }
+
+  .hero-cta-group {
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .hero-cta-group a {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  /* Tables responsive scrollbar style */
+  .table-wrap {
+    margin: 0 -8px;
+    border-radius: var(--radius-sm);
+  }
+}
+
+@media (max-width: 480px) {
+  /* Prevent single column override on small screen for KPIs */
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .mobile-bottom-nav .nav-label {
+    display: none; /* Hide labels on very narrow screens to prevent overlap */
+  }
+  
+  .mobile-bottom-nav a span {
+    padding: 10px;
   }
 
   .owner-earnings-grid {
     grid-template-columns: 1fr;
   }
 }
+
+

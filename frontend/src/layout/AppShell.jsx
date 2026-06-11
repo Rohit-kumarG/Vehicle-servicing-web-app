@@ -121,14 +121,19 @@ export default function AppShell() {
 
       <section className="elite-main">
         <header className="elite-topbar">
-          <button className="icon-button" onClick={toggleSidebar} aria-label="Menu">
+          <button className="icon-button mobile-menu-btn" onClick={toggleSidebar} aria-label="Menu">
             <Menu size={18} />
           </button>
+
+          <div className="topbar-brand-mobile" onClick={handleBrandClick}>
+            <ShieldCheck size={22} strokeWidth={2} />
+            <span>GARAGE WALA</span>
+          </div>
 
           <div className="topbar-actions">
             <div className="user-chip">
               <span className="avatar">{initial}</span>
-              <span>{displayName}</span>
+              <span className="username-text">{displayName}</span>
             </div>
             {user ? (
               <NotificationBell />
@@ -149,6 +154,29 @@ export default function AppShell() {
           <Outlet />
         </main>
       </section>
+
+      {/* Mobile Sticky Bottom Navigation */}
+      <nav className="mobile-bottom-nav">
+        {links.slice(0, 4).map(({ to, label, icon: Icon }) => (
+          <NavLink key={"mob-" + to + label} to={to} end={to === "/"}>
+            {({ isActive }) => (
+              <span className={isActive ? "active" : ""}>
+                <Icon size={20} strokeWidth={1.8} />
+                <span className="nav-label">{label.split(" ")[0]}</span>
+              </span>
+            )}
+          </NavLink>
+        ))}
+        <NavLink to="/profile">
+          {({ isActive }) => (
+            <span className={isActive ? "active" : ""}>
+              <UserRound size={20} strokeWidth={1.8} />
+              <span className="nav-label">Profile</span>
+            </span>
+          )}
+        </NavLink>
+      </nav>
     </div>
   );
 }
+

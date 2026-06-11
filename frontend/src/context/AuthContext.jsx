@@ -9,14 +9,14 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     try {
-      const savedUser = localStorage.getItem("autocare_user");
-      const savedToken = localStorage.getItem("autocare_token");
+      const savedUser = sessionStorage.getItem("autocare_user");
+      const savedToken = sessionStorage.getItem("autocare_token");
       if (savedUser && savedToken) {
         setUser(JSON.parse(savedUser));
       }
     } catch (e) {
-      localStorage.removeItem("autocare_user");
-      localStorage.removeItem("autocare_token");
+      sessionStorage.removeItem("autocare_user");
+      sessionStorage.removeItem("autocare_token");
     }
     setLoading(false);
   }, []);
@@ -24,14 +24,14 @@ export function AuthProvider({ children }) {
   const login = async (payload) => {
     try {
       // Clear old data first
-      localStorage.removeItem("autocare_token");
-      localStorage.removeItem("autocare_user");
+      sessionStorage.removeItem("autocare_token");
+      sessionStorage.removeItem("autocare_user");
 
       const res = await authService.login(payload);
       const { token, user } = res.data;
 
-      localStorage.setItem("autocare_token", token);
-      localStorage.setItem("autocare_user", JSON.stringify(user));
+      sessionStorage.setItem("autocare_token", token);
+      sessionStorage.setItem("autocare_user", JSON.stringify(user));
       setUser(user);
       return { success: true, user };
     } catch (error) {
@@ -45,14 +45,14 @@ export function AuthProvider({ children }) {
   const register = async (payload) => {
     try {
       // Clear old data first
-      localStorage.removeItem("autocare_token");
-      localStorage.removeItem("autocare_user");
+      sessionStorage.removeItem("autocare_token");
+      sessionStorage.removeItem("autocare_user");
 
       const res = await authService.register(payload);
       const { token, user } = res.data;
 
-      localStorage.setItem("autocare_token", token);
-      localStorage.setItem("autocare_user", JSON.stringify(user));
+      sessionStorage.setItem("autocare_token", token);
+      sessionStorage.setItem("autocare_user", JSON.stringify(user));
       setUser(user);
       return { success: true, user };
     } catch (error) {
@@ -64,11 +64,12 @@ export function AuthProvider({ children }) {
   };
 
   const logout = () => {
-    localStorage.removeItem("autocare_token");
-    localStorage.removeItem("autocare_user");
+    sessionStorage.removeItem("autocare_token");
+    sessionStorage.removeItem("autocare_user");
     setUser(null);
     window.location.href = "/login";
   };
+
 
   return (
     <AuthContext.Provider value={{ user, loading, login, register, logout }}>

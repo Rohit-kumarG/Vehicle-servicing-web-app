@@ -8,7 +8,7 @@ const apiClient = axios.create({
 });
 
 apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem("autocare_token");
+  const token = sessionStorage.getItem("autocare_token");
 
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
