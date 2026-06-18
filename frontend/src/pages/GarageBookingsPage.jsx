@@ -43,7 +43,7 @@ export default function GarageBookingsPage() {
     const html = `
       <html>
         <head>
-          <title>Invoice - Elite AutoCare</title>
+          <title>Invoice - GARAGE WALA</title>
           <style>
             body { font-family: 'Outfit', 'Inter', sans-serif; color: #1a1e26; padding: 40px; margin: 0; }
             .invoice-header { display: flex; justify-content: space-between; border-bottom: 2px solid #c5a880; padding-bottom: 20px; margin-bottom: 30px; }
@@ -63,7 +63,7 @@ export default function GarageBookingsPage() {
         <body>
           <div class="invoice-header">
             <div>
-              <div class="logo">Elite AutoCare Hub</div>
+              <div class="logo">GARAGE WALA</div>
               <span class="invoice-status">Paid Receipt</span>
             </div>
             <div style="text-align: right;">
@@ -123,8 +123,8 @@ export default function GarageBookingsPage() {
           </table>
 
           <div class="footer">
-            <p>Thank you for choosing Elite AutoCare Hub for your premium vehicle needs.</p>
-            <p>&copy; ${new Date().getFullYear()} Elite AutoCare Hub. All rights reserved.</p>
+            <p>Thank you for choosing GARAGE WALA for your premium vehicle needs.</p>
+            <p>&copy; ${new Date().getFullYear()} GARAGE WALA. All rights reserved.</p>
           </div>
 
           <script>

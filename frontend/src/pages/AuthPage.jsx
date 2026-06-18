@@ -253,10 +253,10 @@ export default function AuthPage({ mode = "login" }) {
       {/* Visual luxury badge side panel */}
       <div className="auth-panel">
         <span className="hero-badge">
-          ⚜️ AutoCare Portal
+          ⚜️ GARAGE WALA Portal
         </span>
         <h1>
-          {isRegister ? "Join the Elite Service Hub" : "Welcome back to AutoCare Concierge"}
+          {isRegister ? "Join the GARAGE WALA Hub" : "Welcome back to GARAGE WALA"}
         </h1>
         <p style={{ marginTop: "12px" }}>
           {isRegister 

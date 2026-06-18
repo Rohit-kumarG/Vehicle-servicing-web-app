@@ -26,7 +26,7 @@ export default function AppShell() {
   if (loading) {
     return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", color: "var(--accent-strong)", fontWeight: "600" }}>
-        Loading Elite Services...
+        Loading GARAGE WALA...
       </div>
     );
   }

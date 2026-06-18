@@ -7,13 +7,25 @@ dotenv.config();
 
 const app = express();
 
+const allowedOrigins = new Set([
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  "https://garage-wala.vercel.app",
+]);
+
+const isPrivateNetworkOrigin = (origin) =>
+  /^http:\/\/(10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+):5173$/.test(
+    origin,
+  );
+
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173",
-      "http://127.0.0.1:5173",
-      "https://garage-wala.vercel.app"
-    ],
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.has(origin) || isPrivateNetworkOrigin(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error("Origin is not allowed by CORS"));
+    },
     credentials: true,
   }),
 );

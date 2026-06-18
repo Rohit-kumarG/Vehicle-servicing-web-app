@@ -6,7 +6,7 @@ export default function NotFoundPage() {
       <div className="empty-state-card">
         <SearchX size={50} />
         <h1>Page not found</h1>
-        <p>The page you requested does not exist in AutoCare Hub.</p>
+        <p>The page you requested does not exist in GARAGE WALA.</p>
         <a className="primary-button" href="/">
           Back to Dashboard
         </a>

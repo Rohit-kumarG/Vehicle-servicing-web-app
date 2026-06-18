@@ -33,8 +33,7 @@ export default function LandingPage() {
           <div className="landing-brand">
             <ShieldCheck size={28} className="brand-icon" />
             <span>
-              <strong>ELITE AUTOCARE</strong>
-              <small>HUB</small>
+              <strong>GARAGE WALA</strong>
             </span>
           </div>
           <nav className="landing-desktop-nav">
@@ -60,7 +59,7 @@ export default function LandingPage() {
           <span className="hero-badge">Smart Vehicle Servicing System</span>
           <h1>Experience Smarter Vehicle Maintenance & Tracking</h1>
           <p className="hero-lead">
-            AutoCare Hub connects you with vetted, certified local garages. Check prices,
+            GARAGE WALA connects you with vetted, certified local garages. Check prices,
             schedule service, and track your vehicle's maintenance status in real-time.
           </p>
           <div className="hero-cta-group">
@@ -95,9 +94,9 @@ export default function LandingPage() {
         </div>
         <div className="about-grid">
           <div className="about-card">
-            <h3>What is AutoCare Hub?</h3>
+            <h3>What is GARAGE WALA?</h3>
             <p>
-              AutoCare Hub is a state-of-the-art vehicle service management ecosystem.
+              GARAGE WALA is a state-of-the-art vehicle service management ecosystem.
               We bridge the gap between discerning vehicle owners and top-tier service garages, 
               offering a centralized platform to manage appointments, keep logs, and review service standards.
             </p>
@@ -106,14 +105,14 @@ export default function LandingPage() {
             <h3>What Problem It Solves</h3>
             <p>
               Traditional vehicle maintenance is plagued by scheduling delays, opaque pricing, 
-              and lack of information about repair status. AutoCare Hub eliminates these worries
+              and lack of information about repair status. GARAGE WALA eliminates these worries
               by introducing structured status tracking, pre-estimated costs, and transparent reviews.
             </p>
           </div>
           <div className="about-card">
             <h3>Why It Was Created</h3>
             <p>
-              Built as a comprehensive final year project, AutoCare Hub aims to digitize
+              Built as a comprehensive final year project, GARAGE WALA aims to digitize
               and standardize the automotive repair industry. We empower users with absolute clarity, 
               allowing drivers to stay safe on the road while keeping automotive expenses predictable.
             </p>
@@ -252,8 +251,7 @@ export default function LandingPage() {
             <div className="landing-brand">
               <ShieldCheck size={24} className="brand-icon" />
               <span>
-                <strong>ELITE AUTOCARE</strong>
-                <small>HUB</small>
+                <strong>GARAGE WALA</strong>
               </span>
             </div>
             <p>Connecting vehicle owners with elite local service technicians.</p>
@@ -266,7 +264,7 @@ export default function LandingPage() {
             </div>
             <div className="footer-contact-item">
               <Mail size={16} />
-              <span>support@eliteautocare.com</span>
+              <span>support@garagewala.com</span>
             </div>
             <div className="footer-contact-item">
               <MapPin size={16} />
@@ -275,7 +273,7 @@ export default function LandingPage() {
           </div>
         </div>
         <div className="footer-copyright">
-          <p>&copy; {new Date().getFullYear()} Elite AutoCare Hub. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} GARAGE WALA. All rights reserved.</p>
         </div>
       </footer>
     </div>
