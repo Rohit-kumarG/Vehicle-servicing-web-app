@@ -29,6 +29,16 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    city: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+    address: {
+      type: String,
+      default: null,
+      trim: true,
+    },
     otpCode: {
       type: String,
       default: null,

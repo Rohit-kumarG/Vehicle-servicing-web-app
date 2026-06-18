@@ -654,7 +654,7 @@ export default function GaragesPage() {
                   </button>
 
                   <button
-                    onClick={() => navigate("/bookings")}
+                    onClick={() => navigate(`/bookings?garage=${garage._id}`)}
                     className="primary-button"
                     style={{
                       width: "100%",

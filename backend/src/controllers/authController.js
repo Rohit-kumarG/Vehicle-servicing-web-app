@@ -16,7 +16,7 @@ const generateToken = (id, role) => {
 // ==========================================
 const registerUser = async (req, res) => {
   try {
-    const { full_name, email, password, role, phone } = req.body;
+    const { full_name, email, password, role, phone, city, address } = req.body;
     const allowedPublicRoles = ["customer", "garage"];
 
     if (!full_name || !email || !password || !role) {
@@ -48,6 +48,8 @@ const registerUser = async (req, res) => {
       password: hashedPassword,
       role,
       phone: phone || null,
+      city: city || null,
+      address: address || null,
     });
 
     res.status(201).json({
@@ -59,6 +61,8 @@ const registerUser = async (req, res) => {
         email: user.email,
         role: user.role,
         phone: user.phone,
+        city: user.city,
+        address: user.address,
       },
     });
   } catch (error) {
@@ -102,6 +106,8 @@ const loginUser = async (req, res) => {
         email: user.email,
         role: user.role,
         phone: user.phone,
+        city: user.city,
+        address: user.address,
       },
     });
   } catch (error) {
@@ -131,11 +137,11 @@ const getProfile = async (req, res) => {
 // ==========================================
 const updateProfile = async (req, res) => {
   try {
-    const { full_name, phone } = req.body;
+    const { full_name, phone, city, address } = req.body;
 
     const user = await User.findByIdAndUpdate(
       req.user.id,
-      { full_name, phone },
+      { full_name, phone, city, address },
       { new: true },
     ).select("-password");
 

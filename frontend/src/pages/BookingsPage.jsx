@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { bookingService, garageService, vehicleService } from "../api/services";
 import { Calendar, Clock, DollarSign, Shield, Car, AlignLeft, XCircle, AlertCircle, MessageSquare } from "lucide-react";
 import ChatPanel from "../components/ChatPanel";
@@ -30,6 +30,7 @@ const getPrice = (name) => servicePrices[name] || 2500;
 export default function BookingsPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [bookings, setBookings] = useState([]);
   const [garages, setGarages] = useState([]);
   const [vehicles, setVehicles] = useState([]);
@@ -58,6 +59,24 @@ export default function BookingsPage() {
   useEffect(() => {
     fetchAll();
   }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const garageId = params.get("garage");
+
+    if (garageId && garages.some((garage) => garage._id === garageId)) {
+      setForm((current) => ({
+        ...current,
+        garage_id: garageId,
+        service_type: "",
+        estimated_cost: 0,
+      }));
+      setSelectedServices([]);
+      setBookingOtherChecked(false);
+      setBookingOtherText("");
+      setShowForm(true);
+    }
+  }, [location.search, garages]);
 
   const fetchAll = async () => {
     try {

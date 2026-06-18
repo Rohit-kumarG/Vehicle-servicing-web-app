@@ -1,10 +1,15 @@
 import { useEffect, useState } from "react";
-import { Mail, Phone, ShieldCheck, UserRound } from "lucide-react";
+import { Home, Mail, MapPin, Phone, ShieldCheck, UserRound } from "lucide-react";
 import { authService } from "../api/services";
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState(null);
-  const [form, setForm] = useState({ full_name: "", phone: "" });
+  const [form, setForm] = useState({
+    full_name: "",
+    phone: "",
+    city: "",
+    address: "",
+  });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -21,6 +26,8 @@ export default function ProfilePage() {
       setForm({
         full_name: res.data.full_name || "",
         phone: res.data.phone || "",
+        city: res.data.city || "",
+        address: res.data.address || "",
       });
     } catch (err) {
       setError(err.response?.data?.message || "Please login to view profile");
@@ -93,6 +100,12 @@ export default function ProfilePage() {
             <Phone size={15} /> {profile.phone || "Phone not added"}
           </p>
           <p>
+            <MapPin size={15} /> {profile.city || "City not added"}
+          </p>
+          <p>
+            <Home size={15} /> {profile.address || "Address not added"}
+          </p>
+          <p>
             <ShieldCheck size={15} /> {profile.role}
           </p>
         </article>
@@ -108,11 +121,27 @@ export default function ProfilePage() {
             />
           </label>
           <label>
-            Phone
+            Contact Number
             <input
               value={form.phone}
               onChange={(e) => setForm({ ...form, phone: e.target.value })}
               placeholder="03001234567"
+            />
+          </label>
+          <label>
+            City
+            <input
+              value={form.city}
+              onChange={(e) => setForm({ ...form, city: e.target.value })}
+              placeholder="Karachi"
+            />
+          </label>
+          <label>
+            Address / Area
+            <input
+              value={form.address}
+              onChange={(e) => setForm({ ...form, address: e.target.value })}
+              placeholder="House, street, area"
             />
           </label>
           <button className="primary-button" disabled={saving}>

@@ -7,7 +7,7 @@ const Vehicle = require("../models/vehicle");
 // ==========================================
 const addVehicle = async (req, res) => {
   try {
-    const { make, model, year, registration_number } = req.body;
+    const { make, model, year, release_date, registration_number } = req.body;
 
     if (!make || !model || !year || !registration_number) {
       return res
@@ -28,6 +28,7 @@ const addVehicle = async (req, res) => {
       make,
       model,
       year,
+      release_date: release_date || null,
       registration_number,
     });
 

@@ -719,7 +719,7 @@ export default function HomePage() {
             {hasRealVehicle ? (
               `Service Status - ${vehicle.make} ${vehicle.model} (${vehicle.registration_number})`
             ) : (
-              "Service Status - Welcome to AutoCare Hub"
+              "Service Status - Welcome to GARAGE WALA"
             )}
           </h1>
         </div>

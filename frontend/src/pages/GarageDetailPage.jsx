@@ -105,7 +105,7 @@ export default function GarageDetailPage() {
             {distance !== null && <span>{distance} km away</span>}
           </div>
         </div>
-        <button className="primary-button" onClick={() => navigate("/bookings")}>
+        <button className="primary-button" onClick={() => navigate(`/bookings?garage=${garage._id}`)}>
           <CalendarCheck2 size={16} /> Book Now
         </button>
       </section>

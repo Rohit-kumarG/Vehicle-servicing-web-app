@@ -206,6 +206,9 @@ export default function AuthPage({ mode = "login" }) {
     email: "",
     password: "",
     role: "customer",
+    phone: "",
+    city: "",
+    address: "",
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -292,6 +295,48 @@ export default function AuthPage({ mode = "login" }) {
               value={form.full_name}
               onChange={handleChange}
               required
+            />
+          </label>
+        )}
+
+        {isRegister && (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "12px",
+            }}
+          >
+            <label>
+              Contact Number
+              <input
+                name="phone"
+                placeholder="03001234567"
+                value={form.phone}
+                onChange={handleChange}
+                required
+              />
+            </label>
+            <label>
+              City
+              <input
+                name="city"
+                placeholder="Karachi"
+                value={form.city}
+                onChange={handleChange}
+              />
+            </label>
+          </div>
+        )}
+
+        {isRegister && (
+          <label>
+            Address / Area
+            <input
+              name="address"
+              placeholder="House, street, area"
+              value={form.address}
+              onChange={handleChange}
             />
           </label>
         )}

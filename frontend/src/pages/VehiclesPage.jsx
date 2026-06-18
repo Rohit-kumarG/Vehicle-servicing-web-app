@@ -11,6 +11,7 @@ export default function VehiclesPage() {
     make: "",
     model: "",
     year: "",
+    release_date: "",
     registration_number: "",
   });
   const [submitting, setSubmitting] = useState(false);
@@ -39,12 +40,15 @@ export default function VehiclesPage() {
     e.preventDefault();
     setSubmitting(true);
     setFormError("");
+    const releaseYear = form.release_date
+      ? new Date(form.release_date).getFullYear()
+      : parseInt(form.year);
     try {
       await vehicleService.create({
         ...form,
-        year: parseInt(form.year),
+        year: releaseYear,
       });
-      setForm({ make: "", model: "", year: "", registration_number: "" });
+      setForm({ make: "", model: "", year: "", release_date: "", registration_number: "" });
       setShowForm(false);
       fetchVehicles();
     } catch (err) {
@@ -139,15 +143,17 @@ export default function VehiclesPage() {
                 />
               </label>
               <label>
-                Release Year
+                Release Date / Year
                 <input
-                  name="year"
-                  type="number"
-                  placeholder="e.g. 2024"
-                  value={form.year}
+                  name="release_date"
+                  type="date"
+                  value={form.release_date}
                   onChange={handleChange}
                   required
                 />
+                <span style={{ color: "var(--muted)", fontSize: "11px", fontWeight: 500 }}>
+                  Calendar se date select karein, year automatically save hoga.
+                </span>
               </label>
               <label>
                 License Registration Plate
@@ -207,6 +213,13 @@ export default function VehiclesPage() {
             const healthScore = Math.floor(Math.random() * 8) + 92; // 92 to 99
             const statusLabel = healthScore > 95 ? "Optimal Condition" : "Servicing Recommended";
             const dateStr = new Date(vehicle.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+            const releaseLabel = vehicle.release_date
+              ? new Date(vehicle.release_date).toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "short",
+                  day: "numeric",
+                })
+              : vehicle.year;
 
             return (
               <article key={vehicle._id} className="garage-card" style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
@@ -218,7 +231,7 @@ export default function VehiclesPage() {
                       {vehicle.make} {vehicle.model}
                     </h3>
                     <span style={{ fontSize: "11px", color: "var(--muted)", fontWeight: "600" }}>
-                      📅 Year: {vehicle.year}
+                      Release: {releaseLabel}
                     </span>
                   </div>
                   <span className="pill" style={{ background: "rgba(197, 168, 128, 0.12)", color: "var(--accent-strong)" }}>

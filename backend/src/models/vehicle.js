@@ -21,6 +21,10 @@ const vehicleSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
+    release_date: {
+      type: Date,
+      default: null,
+    },
     registration_number: {
       type: String,
       required: true,
